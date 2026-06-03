@@ -1,0 +1,3445 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Portfolio of Swapnil Pandey, Mechanical Engineering undergraduate at ABES Engineering College, AKTU. Specialist in IoT, automation, and smart systems.">
+  <title>Swapnil Pandey | Mechanical & IoT Engineer</title>
+  
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Exo+2:wght@300;400;500;600;700;800&family=Orbitron:wght@400;500;700;900&family=IBM+Plex+Mono:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <!-- Three.js CDN -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+  <style>
+    /* ----------------------------------------------------
+       DESIGN SYSTEM & CSS CUSTOM PROPERTIES
+       ---------------------------------------------------- */
+    :root {
+      --bg-color: #000000;
+      --bg-card: rgba(30, 30, 30, 0.7);
+      --bg-card-hover: rgba(45, 45, 45, 0.85);
+      --accent-cyan: #00d4ff;
+      --accent-cyan-glow: rgba(0, 212, 255, 0.4);
+      --accent-cyan-dim: rgba(0, 212, 255, 0.15);
+      --accent-amber: #f5a623;
+      --accent-amber-glow: rgba(245, 166, 35, 0.4);
+      --accent-amber-dim: rgba(245, 166, 35, 0.15);
+      --text-main: #e2e8f0;
+      --text-muted: #8a99ad;
+      --grid-line: rgba(255, 255, 255, 0.04);
+      --grid-line-major: rgba(255, 255, 255, 0.09);
+      
+      --font-heading: 'Orbitron', sans-serif;
+      --font-body: 'Share Tech Mono', 'IBM Plex Mono', monospace;
+      --transition-smooth: all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+      --border-radius: 4px;
+    }
+
+    /* ----------------------------------------------------
+       RESET & BASE STYLES
+       ---------------------------------------------------- */
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      cursor: none; /* Custom mechanical cursor */
+    }
+
+    html {
+      scroll-behavior: smooth;
+      scrollbar-width: thin;
+      scrollbar-color: var(--accent-cyan) var(--bg-color);
+    }
+
+    body {
+      background-color: var(--bg-color);
+      color: var(--text-main);
+      font-family: var(--font-body);
+      font-size: 15px;
+      line-height: 1.6;
+      overflow-x: hidden;
+      position: relative;
+    }
+
+    /* ----------------------------------------------------
+       CAD MECHANICAL BACKGROUND COMPONENTS
+       ---------------------------------------------------- */
+    .cad-component-wrapper {
+      position: fixed; /* Fixed so they drift relative to viewport */
+      opacity: 0.22; /* Idle opacity (0.15 - 0.3) */
+      transition: opacity 0.3s;
+      z-index: -1;
+      pointer-events: none;
+      transform-origin: center center;
+    }
+    .cad-component-wrapper svg {
+      pointer-events: auto; /* make SVG interactive */
+      cursor: crosshair;
+      overflow: visible;
+    }
+    .blueprint-svg path, 
+    .blueprint-svg circle, 
+    .blueprint-svg polygon, 
+    .blueprint-svg rect, 
+    .blueprint-svg line {
+      stroke: var(--accent-cyan);
+      transition: stroke 0.3s, filter 0.3s;
+    }
+    .cad-component-wrapper:hover {
+      opacity: 0.8; /* Hover opacity */
+    }
+    .cad-component-wrapper:hover svg path,
+    .cad-component-wrapper:hover svg circle,
+    .cad-component-wrapper:hover svg polygon,
+    .cad-component-wrapper:hover svg rect,
+    .cad-component-wrapper:hover svg line {
+      stroke: var(--accent-amber);
+      filter: drop-shadow(0 0 6px var(--accent-amber-glow));
+    }
+    .cad-tooltip {
+      position: absolute;
+      background: #222222;
+      border: 1px solid var(--accent-amber);
+      color: var(--accent-amber);
+      padding: 5px 10px;
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 11px;
+      white-space: nowrap;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.2s;
+      top: -35px;
+      left: 50%;
+      transform: translateX(-50%);
+      box-shadow: 0 0 10px rgba(245, 166, 35, 0.3);
+      border-radius: 2px;
+      z-index: 1000;
+    }
+    .cad-component-wrapper:hover .cad-tooltip {
+      opacity: 1;
+    }
+
+    /* AutoCAD status bar strip */
+    #autocad-status-bar {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      background: #232323;
+      border-top: 1px solid #3d3d3d;
+      color: #8c8c8c;
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 11px;
+      padding: 5px 15px;
+      z-index: 9998; /* Under custom cursor */
+      pointer-events: none;
+      letter-spacing: 1px;
+      display: flex;
+      gap: 15px;
+      align-items: center;
+    }
+    #autocad-status-bar span.active-coord {
+      color: #e0e0e0;
+    }
+    #autocad-status-bar .status-flags {
+      color: #555555;
+    }
+    #autocad-status-bar .status-flags span.enabled {
+      color: var(--accent-cyan);
+    }
+
+
+    /* Scanline screen effect */
+    body::after {
+      content: '';
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.15) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.03), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.03));
+      background-size: 100% 4px, 6px 100%;
+      z-index: 9999;
+      pointer-events: none;
+      opacity: 0.4;
+    }
+
+    /* Custom scrollbar */
+    ::-webkit-scrollbar {
+      width: 8px;
+    }
+    ::-webkit-scrollbar-track {
+      background: var(--bg-color);
+      border-left: 1px solid var(--accent-cyan-dim);
+    }
+    ::-webkit-scrollbar-thumb {
+      background: var(--accent-cyan-dim);
+      border: 2px solid var(--bg-color);
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: var(--accent-cyan);
+      box-shadow: 0 0 10px var(--accent-cyan);
+    }
+
+    /* ----------------------------------------------------
+       TYPOGRAPHY & UTILITIES
+       ---------------------------------------------------- */
+    h1, h2, h3, h4, h5, h6 {
+      font-family: var(--font-heading);
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      font-weight: 700;
+    }
+
+    a {
+      color: var(--accent-cyan);
+      text-decoration: none;
+      transition: var(--transition-smooth);
+    }
+
+    a:hover {
+      color: var(--accent-amber);
+      text-shadow: 0 0 8px var(--accent-amber-glow);
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 2rem;
+    }
+
+    /* Tech readout style */
+    .readout {
+      font-family: var(--font-body);
+      color: var(--accent-cyan);
+      font-size: 0.85rem;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+    .readout::before {
+      content: '';
+      display: inline-block;
+      width: 6px;
+      height: 6px;
+      background-color: var(--accent-cyan);
+      box-shadow: 0 0 6px var(--accent-cyan);
+      border-radius: 50%;
+    }
+
+    .readout.amber {
+      color: var(--accent-amber);
+    }
+    .readout.amber::before {
+      background-color: var(--accent-amber);
+      box-shadow: 0 0 6px var(--accent-amber);
+    }
+
+    /* Glowing Borders / Corners */
+    .hud-box {
+      background: var(--bg-card);
+      border: 1px solid var(--accent-cyan-dim);
+      backdrop-filter: blur(12px);
+      border-radius: var(--border-radius);
+      position: relative;
+      padding: 2rem;
+      transition: var(--transition-smooth);
+    }
+
+    .hud-box::before, .hud-box::after, 
+    .hud-box-inner::before, .hud-box-inner::after {
+      content: '';
+      position: absolute;
+      width: 10px;
+      height: 10px;
+      border-color: var(--accent-cyan);
+      border-style: solid;
+      pointer-events: none;
+      transition: var(--transition-smooth);
+    }
+    /* Top-left corner */
+    .hud-box::before {
+      top: -1px;
+      left: -1px;
+      border-width: 2px 0 0 2px;
+    }
+    /* Top-right corner */
+    .hud-box::after {
+      top: -1px;
+      right: -1px;
+      border-width: 2px 2px 0 0;
+    }
+    /* Bottom-left corner inside helper */
+    .hud-box-inner-anchor {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      pointer-events: none;
+    }
+    .hud-box-inner-anchor::before {
+      content: '';
+      position: absolute;
+      bottom: -1px;
+      left: -1px;
+      width: 10px;
+      height: 10px;
+      border-style: solid;
+      border-color: var(--accent-cyan);
+      border-width: 0 0 2px 2px;
+    }
+    .hud-box-inner-anchor::after {
+      content: '';
+      position: absolute;
+      bottom: -1px;
+      right: -1px;
+      width: 10px;
+      height: 10px;
+      border-style: solid;
+      border-color: var(--accent-cyan);
+      border-width: 0 2px 2px 0;
+    }
+
+    .hud-box.glow-hover:hover {
+      border-color: var(--accent-cyan);
+      box-shadow: 0 0 20px rgba(0, 212, 255, 0.15);
+    }
+
+    .hud-box.amber-theme {
+      border-color: var(--accent-amber-dim);
+    }
+    .hud-box.amber-theme::before, .hud-box.amber-theme::after {
+      border-color: var(--accent-amber);
+    }
+    .hud-box.amber-theme .hud-box-inner-anchor::before, .hud-box.amber-theme .hud-box-inner-anchor::after {
+      border-color: var(--accent-amber);
+    }
+    .hud-box.amber-theme.glow-hover:hover {
+      border-color: var(--accent-amber);
+      box-shadow: 0 0 20px rgba(245, 166, 35, 0.15);
+    }
+
+    /* ----------------------------------------------------
+       CUSTOM CURSOR
+       ---------------------------------------------------- */
+    #custom-cursor-canvas {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 10000;
+    }
+
+    /* ----------------------------------------------------
+       NAVIGATION
+       ---------------------------------------------------- */
+    header {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      z-index: 100;
+      background: rgba(0, 0, 0, 0.85);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--accent-cyan-dim);
+      transition: var(--transition-smooth);
+    }
+
+    .nav-container {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      height: 70px;
+      padding: 0 2rem;
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+
+    .logo {
+      font-family: var(--font-heading);
+      font-weight: 900;
+      font-size: 1.5rem;
+      color: var(--text-main);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .logo span {
+      color: var(--accent-cyan);
+      text-shadow: 0 0 10px var(--accent-cyan-glow);
+    }
+
+    .logo i {
+      font-size: 1.2rem;
+      color: var(--accent-amber);
+      animation: cog-spin 8s linear infinite;
+    }
+
+    @keyframes cog-spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 2rem;
+      list-style: none;
+    }
+
+    .nav-links a {
+      font-family: var(--font-heading);
+      font-size: 0.85rem;
+      font-weight: 500;
+      letter-spacing: 1px;
+      color: var(--text-muted);
+      position: relative;
+      padding: 5px 0;
+    }
+
+    .nav-links a::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 0;
+      height: 1px;
+      background-color: var(--accent-cyan);
+      box-shadow: 0 0 8px var(--accent-cyan);
+      transition: var(--transition-smooth);
+    }
+
+    .nav-links a.active, .nav-links a:hover {
+      color: var(--accent-cyan);
+      text-shadow: 0 0 8px var(--accent-cyan-glow);
+    }
+
+    .nav-links a.active::after, .nav-links a:hover::after {
+      width: 100%;
+    }
+
+    .menu-toggle {
+      display: none;
+      font-size: 1.5rem;
+      color: var(--accent-cyan);
+      background: none;
+      border: none;
+    }
+
+    /* ----------------------------------------------------
+       HERO SECTION
+       ---------------------------------------------------- */
+    .hero {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      position: relative;
+      padding-top: 80px;
+      overflow: hidden;
+    }
+
+    #threejs-hero-container {
+      position: absolute;
+      top: 0;
+      right: 0;
+      width: 50%;
+      height: 100%;
+      z-index: 1;
+      pointer-events: auto;
+    }
+
+    .hero-content {
+      position: relative;
+      z-index: 2;
+      width: 55%;
+      pointer-events: auto;
+    }
+
+    .hero-pretitle {
+      font-family: var(--font-body);
+      color: var(--accent-amber);
+      font-size: 1rem;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .hero-pretitle::after {
+      content: '';
+      height: 1px;
+      flex-grow: 1;
+      max-width: 100px;
+      background-color: var(--accent-amber);
+    }
+
+    .hero-title {
+      font-size: 4rem;
+      font-weight: 900;
+      line-height: 1.1;
+      margin-bottom: 15px;
+      color: var(--text-main);
+      text-shadow: 0 0 30px rgba(0, 212, 255, 0.1);
+    }
+
+    .hero-title span {
+      background: linear-gradient(135deg, var(--accent-cyan), var(--text-main));
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .hero-subtitle {
+      font-size: 1.5rem;
+      font-weight: 500;
+      color: var(--accent-cyan);
+      margin-bottom: 25px;
+      height: 35px; /* Prevent layout shifting */
+      display: flex;
+      align-items: center;
+    }
+
+    .typing-cursor {
+      display: inline-block;
+      width: 10px;
+      height: 24px;
+      background-color: var(--accent-cyan);
+      margin-left: 5px;
+      animation: blink 0.8s infinite;
+    }
+
+    @keyframes blink {
+      0%, 100% { opacity: 0; }
+      50% { opacity: 1; }
+    }
+
+    .hero-desc {
+      color: var(--text-muted);
+      max-width: 550px;
+      margin-bottom: 40px;
+      font-size: 1.05rem;
+    }
+
+    .hero-ctas {
+      display: flex;
+      gap: 20px;
+      align-items: center;
+    }
+
+    .btn {
+      font-family: var(--font-heading);
+      font-size: 0.9rem;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      padding: 14px 28px;
+      border-radius: var(--border-radius);
+      position: relative;
+      overflow: hidden;
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      transition: var(--transition-smooth);
+      border: 1px solid var(--accent-cyan);
+      background: transparent;
+      color: var(--accent-cyan);
+    }
+
+    .btn::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(0, 212, 255, 0.25), transparent);
+      transition: 0.5s;
+    }
+
+    .btn:hover::before {
+      left: 100%;
+    }
+
+    .btn:hover {
+      box-shadow: 0 0 15px var(--accent-cyan-glow);
+      background: var(--accent-cyan-dim);
+      text-shadow: 0 0 8px var(--accent-cyan);
+      transform: translateY(-2px);
+    }
+
+    .btn.btn-solid {
+      background: var(--accent-cyan);
+      color: var(--bg-color);
+    }
+
+    .btn.btn-solid:hover {
+      background: #00b8e6;
+      color: var(--bg-color);
+      text-shadow: none;
+    }
+
+    .btn-icon-only {
+      width: 50px;
+      height: 50px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid var(--accent-cyan-dim);
+      color: var(--text-muted);
+      border-radius: var(--border-radius);
+      font-size: 1.25rem;
+      transition: var(--transition-smooth);
+    }
+
+    .btn-icon-only:hover {
+      color: var(--accent-cyan);
+      border-color: var(--accent-cyan);
+      box-shadow: 0 0 10px var(--accent-cyan-glow);
+      transform: translateY(-2px);
+    }
+
+    .hero-tech-specs {
+      position: absolute;
+      bottom: 40px;
+      left: 2rem;
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      border-left: 2px solid var(--accent-cyan-dim);
+      padding-left: 15px;
+      pointer-events: none;
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+
+    /* ----------------------------------------------------
+       SECTIONS SYSTEM
+       ---------------------------------------------------- */
+    section {
+      padding: 100px 0;
+      position: relative;
+    }
+
+    .section-title-wrap {
+      margin-bottom: 60px;
+      position: relative;
+    }
+
+    .section-title {
+      font-size: 2.25rem;
+      font-weight: 800;
+      color: var(--text-main);
+      display: inline-block;
+      position: relative;
+    }
+
+    .section-title span {
+      color: var(--accent-cyan);
+      text-shadow: 0 0 10px var(--accent-cyan-glow);
+    }
+
+    .section-title::after {
+      content: '';
+      position: absolute;
+      bottom: -10px;
+      left: 0;
+      width: 60px;
+      height: 2px;
+      background-color: var(--accent-cyan);
+      box-shadow: 0 0 8px var(--accent-cyan);
+    }
+
+    .section-subtitle-bg {
+      position: absolute;
+      top: -20px;
+      left: 0;
+      font-family: var(--font-heading);
+      font-size: 4rem;
+      font-weight: 900;
+      color: rgba(255, 255, 255, 0.02);
+      letter-spacing: 5px;
+      pointer-events: none;
+      line-height: 1;
+    }
+
+    /* Scroll Animation Target */
+    .scroll-reveal {
+      opacity: 0;
+      transform: translateY(40px);
+      transition: opacity 0.8s cubic-bezier(0.25, 1, 0.5, 1), transform 0.8s cubic-bezier(0.25, 1, 0.5, 1);
+    }
+
+    .scroll-reveal.revealed {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    /* Staggered children */
+    .stagger-parent > * {
+      opacity: 0;
+      transform: translateY(20px);
+      transition: opacity 0.6s cubic-bezier(0.25, 1, 0.5, 1), transform 0.6s cubic-bezier(0.25, 1, 0.5, 1);
+    }
+
+    .stagger-parent.revealed > * {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .stagger-parent.revealed > *:nth-child(1) { transition-delay: 0.1s; }
+    .stagger-parent.revealed > *:nth-child(2) { transition-delay: 0.2s; }
+    .stagger-parent.revealed > *:nth-child(3) { transition-delay: 0.3s; }
+    .stagger-parent.revealed > *:nth-child(4) { transition-delay: 0.4s; }
+    .stagger-parent.revealed > *:nth-child(5) { transition-delay: 0.5s; }
+
+    /* ----------------------------------------------------
+       ABOUT SECTION
+       ---------------------------------------------------- */
+    .about-grid {
+      display: grid;
+      grid-template-columns: 1.2fr 0.8fr;
+      gap: 50px;
+      align-items: center;
+    }
+
+    .about-bio-text {
+      font-size: 1.1rem;
+      line-height: 1.8;
+      color: var(--text-main);
+    }
+
+    .about-bio-text p {
+      margin-bottom: 20px;
+    }
+
+    .about-bio-highlights {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 15px;
+      margin-top: 30px;
+    }
+
+    .highlight-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-family: var(--font-body);
+      font-size: 0.9rem;
+      color: var(--text-muted);
+    }
+
+    .highlight-item i {
+      color: var(--accent-cyan);
+    }
+
+    /* Stats Grid */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+
+    .stat-card {
+      text-align: center;
+      padding: 1.5rem;
+    }
+
+    .stat-number {
+      font-family: var(--font-heading);
+      font-size: 2.5rem;
+      font-weight: 800;
+      color: var(--accent-amber);
+      text-shadow: 0 0 10px var(--accent-amber-glow);
+      margin-bottom: 5px;
+      display: inline-block;
+    }
+
+    .stat-label {
+      font-family: var(--font-body);
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    /* ----------------------------------------------------
+       PROJECTS SECTION
+       ---------------------------------------------------- */
+    .projects-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 30px;
+    }
+
+    /* Card Flip Structure */
+    .project-card {
+      background-color: transparent;
+      height: 380px;
+      perspective: 1000px; /* Enable 3D flip */
+    }
+
+    .project-card-inner {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      text-align: left;
+      transition: transform 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+      transform-style: preserve-3d;
+    }
+
+    .project-card:hover .project-card-inner {
+      transform: rotateY(180deg);
+    }
+
+    .project-card-front, .project-card-back {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      -webkit-backface-visibility: hidden;
+      backface-visibility: hidden;
+      border-radius: var(--border-radius);
+      padding: 2rem;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .project-card-front {
+      background: var(--bg-card);
+      border: 1px solid var(--accent-cyan-dim);
+    }
+
+    .project-card-back {
+      background: var(--bg-card-hover);
+      border: 1px solid var(--accent-amber-dim);
+      transform: rotateY(180deg);
+      justify-content: space-between;
+    }
+
+    /* Front styling */
+    .project-card-front .project-icon {
+      font-size: 2.5rem;
+      color: var(--accent-cyan);
+      text-shadow: 0 0 15px var(--accent-cyan-glow);
+      margin-bottom: 20px;
+    }
+
+    .project-card-front h3 {
+      font-size: 1.4rem;
+      margin-bottom: 15px;
+      line-height: 1.3;
+      color: var(--text-main);
+    }
+
+    .project-card-front .tech-stack {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: auto;
+    }
+
+    .tech-tag {
+      font-family: var(--font-body);
+      font-size: 0.75rem;
+      color: var(--accent-cyan);
+      background: var(--accent-cyan-dim);
+      border: 1px solid rgba(0, 212, 255, 0.3);
+      padding: 3px 8px;
+      border-radius: 2px;
+    }
+
+    .project-card-back .tech-tag {
+      color: var(--accent-amber);
+      background: var(--accent-amber-dim);
+      border: 1px solid rgba(245, 166, 35, 0.3);
+    }
+
+    /* Back styling */
+    .project-card-back h3 {
+      font-size: 1.3rem;
+      color: var(--accent-amber);
+      margin-bottom: 10px;
+    }
+
+    .project-card-back .project-highlights {
+      list-style: none;
+      font-size: 0.9rem;
+      color: var(--text-main);
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .project-card-back .project-highlights li {
+      position: relative;
+      padding-left: 20px;
+    }
+
+    .project-card-back .project-highlights li::before {
+      content: '⚡';
+      position: absolute;
+      left: 0;
+      top: 0;
+      color: var(--accent-amber);
+    }
+
+    .project-action {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-top: 1px solid var(--accent-amber-dim);
+      padding-top: 15px;
+      margin-top: auto;
+    }
+
+    .project-action span {
+      font-family: var(--font-heading);
+      font-size: 0.8rem;
+      color: var(--accent-amber);
+      letter-spacing: 1px;
+    }
+
+    .project-action i {
+      color: var(--accent-amber);
+      transition: var(--transition-smooth);
+    }
+
+    .project-card:hover .project-action i {
+      transform: translateX(5px);
+    }
+
+    /* ----------------------------------------------------
+       SKILLS SECTION (CUBE & BARS)
+       ---------------------------------------------------- */
+    .skills-layout {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 60px;
+      align-items: center;
+    }
+
+    /* 3D Cube Container */
+    .cube-section {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 400px;
+      position: relative;
+    }
+
+    .cube-container {
+      width: 200px;
+      height: 200px;
+      perspective: 1000px;
+    }
+
+    .cube {
+      width: 100%;
+      height: 100%;
+      position: absolute;
+      transform-style: preserve-3d;
+      transform: rotateX(-20deg) rotateY(30deg);
+      transition: transform 1.5s cubic-bezier(0.2, 0.8, 0.2, 1);
+    }
+
+    .cube-face {
+      position: absolute;
+      width: 200px;
+      height: 200px;
+      border: 2px solid var(--accent-cyan);
+      background: rgba(0, 0, 0, 0.85);
+      backdrop-filter: blur(8px);
+      box-shadow: inset 0 0 20px rgba(0, 212, 255, 0.2), 0 0 10px rgba(0, 212, 255, 0.1);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+      text-align: center;
+      transition: var(--transition-smooth);
+      backface-visibility: visible;
+      pointer-events: auto;
+    }
+
+    .cube-face:hover {
+      box-shadow: inset 0 0 30px rgba(0, 212, 255, 0.4), 0 0 20px rgba(0, 212, 255, 0.3);
+      border-color: var(--accent-cyan);
+      color: #fff;
+    }
+
+    .cube-face i {
+      font-size: 2.5rem;
+      color: var(--accent-cyan);
+      margin-bottom: 15px;
+      text-shadow: 0 0 10px var(--accent-cyan-glow);
+      transition: var(--transition-smooth);
+    }
+
+    .cube-face:hover i {
+      color: var(--accent-amber);
+      transform: scale(1.1);
+    }
+
+    .cube-face h4 {
+      font-family: var(--font-heading);
+      font-size: 0.95rem;
+      letter-spacing: 1px;
+      color: var(--text-main);
+    }
+
+    .cube-face p {
+      font-family: var(--font-body);
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      margin-top: 5px;
+    }
+
+    /* Face orientations */
+    .face-front  { transform: rotateY(0deg) translateZ(100px); }
+    .face-back   { transform: rotateY(180deg) translateZ(100px); }
+    .face-right  { transform: rotateY(90deg) translateZ(100px); }
+    .face-left   { transform: rotateY(-90deg) translateZ(100px); }
+    .face-top    { transform: rotateX(90deg) translateZ(100px); }
+    .face-bottom { transform: rotateX(-90deg) translateZ(100px); }
+
+    /* Interactive Cube controls */
+    .cube-instructions {
+      position: absolute;
+      bottom: 20px;
+      font-family: var(--font-body);
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .cube-instructions i {
+      color: var(--accent-cyan);
+      animation: bounce-horiz 1.5s infinite alternate;
+    }
+
+    @keyframes bounce-horiz {
+      0% { transform: translateX(-3px); }
+      100% { transform: translateX(3px); }
+    }
+
+    /* Progress bars styling */
+    .skills-bars-container {
+      width: 100%;
+    }
+
+    .skill-category-block {
+      display: none; /* Controlled by JS / active class */
+      animation: tab-fade 0.5s ease forwards;
+    }
+
+    .skill-category-block.active {
+      display: block;
+    }
+
+    @keyframes tab-fade {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .skills-category-title {
+      font-size: 1.25rem;
+      color: var(--accent-cyan);
+      margin-bottom: 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px dashed var(--accent-cyan-dim);
+      padding-bottom: 10px;
+    }
+
+    .skills-category-title span {
+      font-family: var(--font-body);
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+
+    .skill-bar-wrap {
+      margin-bottom: 20px;
+    }
+
+    .skill-label-info {
+      display: flex;
+      justify-content: space-between;
+      font-family: var(--font-body);
+      font-size: 0.85rem;
+      margin-bottom: 6px;
+      color: var(--text-main);
+    }
+
+    .skill-bar-bg {
+      height: 8px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(0, 212, 255, 0.1);
+      border-radius: 4px;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .skill-bar-fill {
+      height: 100%;
+      width: 0; /* Animated dynamically by JS intersection observer */
+      background: linear-gradient(90deg, var(--accent-cyan), var(--accent-cyan-glow));
+      box-shadow: 0 0 10px var(--accent-cyan-glow);
+      border-radius: 4px;
+      transition: width 1.5s cubic-bezier(0.1, 0.8, 0.3, 1);
+    }
+
+    /* Amber theme fill fallback */
+    .skill-category-block:nth-child(even) .skill-bar-fill {
+      background: linear-gradient(90deg, var(--accent-amber), var(--accent-amber-glow));
+      box-shadow: 0 0 10px var(--accent-amber-glow);
+    }
+
+    .skill-category-block:nth-child(even) .skills-category-title {
+      color: var(--accent-amber);
+      border-color: var(--accent-amber-dim);
+    }
+
+    /* ----------------------------------------------------
+       ACHIEVEMENTS SECTION (TIMELINE)
+       ---------------------------------------------------- */
+    .timeline {
+      position: relative;
+      max-width: 850px;
+      margin: 0 auto;
+      padding: 20px 0;
+    }
+
+    .timeline::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      left: 40px;
+      width: 2px;
+      background: linear-gradient(var(--accent-cyan-dim), var(--accent-cyan), var(--accent-amber), var(--accent-amber-dim));
+      box-shadow: 0 0 8px rgba(0, 212, 255, 0.2);
+    }
+
+    .timeline-item {
+      position: relative;
+      margin-bottom: 50px;
+      padding-left: 80px;
+    }
+
+    .timeline-dot {
+      position: absolute;
+      left: 31px;
+      top: 4px;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: var(--bg-color);
+      border: 3px solid var(--accent-cyan);
+      box-shadow: 0 0 8px var(--accent-cyan);
+      z-index: 2;
+      transition: var(--transition-smooth);
+    }
+
+    .timeline-item:hover .timeline-dot {
+      background: var(--accent-cyan);
+      box-shadow: 0 0 15px var(--accent-cyan);
+      transform: scale(1.2);
+    }
+
+    .timeline-item:nth-child(even) .timeline-dot {
+      border-color: var(--accent-amber);
+      box-shadow: 0 0 8px var(--accent-amber);
+    }
+
+    .timeline-item:nth-child(even):hover .timeline-dot {
+      background: var(--accent-amber);
+      box-shadow: 0 0 15px var(--accent-amber);
+    }
+
+    .timeline-content {
+      padding: 1.5rem 2rem;
+    }
+
+    .timeline-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      padding-bottom: 8px;
+    }
+
+    .timeline-badge {
+      font-family: var(--font-body);
+      font-size: 0.75rem;
+      background: var(--accent-cyan-dim);
+      color: var(--accent-cyan);
+      border: 1px solid rgba(0, 212, 255, 0.2);
+      padding: 2px 8px;
+      border-radius: 20px;
+    }
+
+    .timeline-item:nth-child(even) .timeline-badge {
+      background: var(--accent-amber-dim);
+      color: var(--accent-amber);
+      border-color: rgba(245, 166, 35, 0.2);
+    }
+
+    .timeline-date {
+      font-family: var(--font-body);
+      font-size: 0.85rem;
+      color: var(--text-muted);
+    }
+
+    .timeline-content h3 {
+      font-size: 1.15rem;
+      color: var(--text-main);
+      margin-bottom: 8px;
+    }
+
+    .timeline-content p {
+      font-size: 0.95rem;
+      color: var(--text-muted);
+    }
+
+    /* ----------------------------------------------------
+       CONTACT SECTION
+       ---------------------------------------------------- */
+    .contact-layout {
+      display: grid;
+      grid-template-columns: 0.9fr 1.1fr;
+      gap: 50px;
+    }
+
+    .contact-card-wrap {
+      height: 100%;
+    }
+
+    .contact-info-list {
+      display: flex;
+      flex-direction: column;
+      gap: 30px;
+      margin-top: 30px;
+    }
+
+    .contact-info-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 20px;
+    }
+
+    .contact-icon-box {
+      width: 50px;
+      height: 50px;
+      border: 1px solid var(--accent-cyan-dim);
+      border-radius: var(--border-radius);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.25rem;
+      color: var(--accent-cyan);
+      box-shadow: 0 0 10px rgba(0, 212, 255, 0.05);
+      transition: var(--transition-smooth);
+    }
+
+    .contact-info-item:hover .contact-icon-box {
+      border-color: var(--accent-cyan);
+      box-shadow: 0 0 15px var(--accent-cyan-glow);
+      color: var(--accent-cyan);
+    }
+
+    .contact-info-item:nth-child(even) .contact-icon-box {
+      border-color: var(--accent-amber-dim);
+      color: var(--accent-amber);
+    }
+
+    .contact-info-item:nth-child(even):hover .contact-icon-box {
+      border-color: var(--accent-amber);
+      box-shadow: 0 0 15px var(--accent-amber-glow);
+    }
+
+    .contact-info-detail h4 {
+      font-family: var(--font-heading);
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      margin-bottom: 5px;
+      letter-spacing: 1px;
+    }
+
+    .contact-info-detail p, .contact-info-detail a {
+      font-size: 1rem;
+      color: var(--text-main);
+    }
+
+    /* Contact Form styling */
+    .contact-form {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .form-group {
+      position: relative;
+    }
+
+    .form-label {
+      display: block;
+      font-family: var(--font-body);
+      font-size: 0.8rem;
+      color: var(--accent-cyan);
+      margin-bottom: 8px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .form-input {
+      width: 100%;
+      background: rgba(0, 0, 0, 0.6);
+      border: 1px solid var(--accent-cyan-dim);
+      border-radius: var(--border-radius);
+      padding: 12px 16px;
+      color: var(--text-main);
+      font-family: var(--font-body);
+      font-size: 0.95rem;
+      transition: var(--transition-smooth);
+    }
+
+    .form-input:focus {
+      outline: none;
+      border-color: var(--accent-cyan);
+      box-shadow: 0 0 15px rgba(0, 212, 255, 0.15);
+      background: rgba(0, 0, 0, 0.8);
+    }
+
+    textarea.form-input {
+      resize: vertical;
+      min-height: 120px;
+    }
+
+    .submit-wrap {
+      display: flex;
+      justify-content: flex-end;
+    }
+
+    /* Form Status / Feedback */
+    .form-feedback {
+      font-family: var(--font-body);
+      font-size: 0.85rem;
+      margin-top: 10px;
+      display: none;
+      animation: tab-fade 0.4s ease forwards;
+    }
+    
+    .form-feedback.success {
+      color: var(--accent-cyan);
+      display: block;
+    }
+
+    /* ----------------------------------------------------
+       FOOTER
+       ---------------------------------------------------- */
+    footer {
+      border-top: 1px solid var(--accent-cyan-dim);
+      background: #000000;
+      padding: 40px 0;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+
+    .footer-grid {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 20px;
+    }
+
+    .footer-terminal {
+      font-family: var(--font-body);
+      border-left: 2px solid var(--accent-amber);
+      padding-left: 15px;
+    }
+
+    .footer-terminal span {
+      color: var(--accent-amber);
+    }
+
+    .footer-copy {
+      text-align: right;
+    }
+
+    .footer-copy span {
+      color: var(--accent-cyan);
+    }
+    #autocad-grid-canvas {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: -2;
+      pointer-events: none;
+    }
+
+    /* ----------------------------------------------------
+       FUSION / CONVERGENCE VENN DIAGRAM
+       ---------------------------------------------------- */
+    #fusion {
+      padding: 100px 0;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .fusion-layout {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 50px;
+      align-items: center;
+    }
+
+    .venn-container {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      position: relative;
+      height: 400px;
+    }
+
+    .venn-svg {
+      width: 100%;
+      max-width: 450px;
+      height: auto;
+      overflow: visible;
+    }
+
+    .venn-circle-left {
+      fill: rgba(0, 212, 255, 0.05);
+      stroke: var(--accent-cyan);
+      stroke-width: 1.5px;
+      transition: var(--transition-smooth);
+    }
+
+    .venn-circle-right {
+      fill: rgba(245, 166, 35, 0.05);
+      stroke: var(--accent-amber);
+      stroke-width: 1.5px;
+      transition: var(--transition-smooth);
+    }
+
+    .venn-intersection {
+      fill: url(#venn-grad);
+      opacity: 0.15;
+      transition: var(--transition-smooth);
+      cursor: crosshair;
+    }
+
+    .venn-container:hover .venn-intersection {
+      opacity: 0.35;
+      filter: drop-shadow(0 0 15px rgba(0, 212, 255, 0.5));
+    }
+
+    .venn-text {
+      font-family: var(--font-heading);
+      font-size: 11px;
+      fill: var(--text-main);
+      letter-spacing: 1px;
+      pointer-events: none;
+    }
+
+    .venn-text-center {
+      fill: var(--accent-amber);
+      font-weight: bold;
+    }
+
+    .fusion-details {
+      display: flex;
+      flex-direction: column;
+      gap: 25px;
+    }
+
+    .fusion-block {
+      padding: 1.5rem;
+      border-left: 2px solid var(--accent-cyan-dim);
+      transition: var(--transition-smooth);
+    }
+
+    .fusion-block:hover {
+      border-left-color: var(--accent-cyan);
+      background: rgba(0, 212, 255, 0.02);
+    }
+
+    .fusion-block.amber-theme {
+      border-left-color: var(--accent-amber-dim);
+    }
+
+    .fusion-block.amber-theme:hover {
+      border-left-color: var(--accent-amber);
+      background: rgba(245, 166, 35, 0.02);
+    }
+
+    .fusion-block h3 {
+      font-size: 1.15rem;
+      margin-bottom: 8px;
+      color: var(--text-main);
+    }
+
+    .fusion-block.amber-theme h3 {
+      color: var(--accent-amber);
+    }
+
+    .fusion-block p {
+      font-size: 0.9rem;
+      color: var(--text-muted);
+      line-height: 1.6;
+    }
+
+    }
+
+    /* ----------------------------------------------------
+       PROJECT GALLERY SHOWCASE
+       ---------------------------------------------------- */
+    .gallery-showcase {
+      margin-top: 60px;
+    }
+
+    .gallery-tabs {
+      display: flex;
+      gap: 15px;
+      margin-bottom: 25px;
+      justify-content: flex-start;
+      flex-wrap: wrap;
+    }
+
+    .gallery-tab-btn {
+      font-family: var(--font-heading);
+      font-size: 0.8rem;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      padding: 10px 20px;
+      border: 1px solid var(--accent-cyan-dim);
+      background: rgba(0, 0, 0, 0.4);
+      color: var(--text-muted);
+      border-radius: var(--border-radius);
+      cursor: crosshair;
+      transition: var(--transition-smooth);
+    }
+
+    .gallery-tab-btn:hover {
+      border-color: var(--accent-cyan);
+      color: var(--accent-cyan);
+      box-shadow: 0 0 10px var(--accent-cyan-dim);
+    }
+
+    .gallery-tab-btn.active {
+      border-color: var(--accent-cyan);
+      background: var(--accent-cyan-dim);
+      color: var(--accent-cyan);
+      box-shadow: 0 0 15px var(--accent-cyan-glow);
+      text-shadow: 0 0 8px var(--accent-cyan);
+    }
+
+    .gallery-grid {
+      display: none;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 20px;
+      animation: tab-fade 0.5s ease forwards;
+    }
+
+    .gallery-grid.active {
+      display: grid;
+    }
+
+    .gallery-item {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      cursor: crosshair;
+    }
+
+    .gallery-img-container {
+      position: relative;
+      width: 100%;
+      height: 180px;
+      border: 1px solid var(--accent-cyan-dim);
+      border-radius: var(--border-radius);
+      overflow: hidden;
+      background: #000;
+    }
+
+    .gallery-img-container img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      opacity: 0.75;
+      transition: var(--transition-smooth);
+    }
+
+    .gallery-item:hover .gallery-img-container img {
+      transform: scale(1.05);
+      opacity: 1;
+    }
+
+    .gallery-item:hover .gallery-img-container {
+      border-color: var(--accent-amber);
+      box-shadow: 0 0 15px var(--accent-amber-glow);
+    }
+
+    .gallery-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 212, 255, 0.15);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      transition: var(--transition-smooth);
+      pointer-events: none;
+    }
+
+    .gallery-overlay i {
+      color: var(--text-main);
+      font-size: 1.5rem;
+      filter: drop-shadow(0 0 5px rgba(0, 0, 0, 0.5));
+    }
+
+    .gallery-item:hover .gallery-overlay {
+      opacity: 1;
+    }
+
+    .gallery-label {
+      font-family: var(--font-body);
+      font-size: 0.75rem;
+      color: var(--accent-cyan);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      border-top: 1px dashed var(--accent-cyan-dim);
+      padding-top: 6px;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .gallery-item:hover .gallery-label {
+      color: var(--accent-amber);
+    }
+
+    /* Lightbox Modal */
+    .lightbox-modal {
+      display: none;
+      position: fixed;
+      z-index: 12000;
+      padding-top: 80px;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      overflow: auto;
+      background-color: rgba(0, 0, 0, 0.96);
+      backdrop-filter: blur(8px);
+    }
+
+    .lightbox-content {
+      margin: auto;
+      display: block;
+      width: 80%;
+      max-width: 800px;
+      border: 1px solid var(--accent-cyan);
+      box-shadow: 0 0 30px var(--accent-cyan-glow);
+      border-radius: var(--border-radius);
+      animation: zoom 0.3s ease;
+    }
+
+    @keyframes zoom {
+      from { transform: scale(0.9); opacity: 0; }
+      to { transform: scale(1); opacity: 1; }
+    }
+
+    .lightbox-close {
+      position: absolute;
+      top: 30px;
+      right: 35px;
+      color: var(--text-muted);
+      font-size: 40px;
+      font-weight: bold;
+      transition: 0.3s;
+      cursor: crosshair;
+    }
+
+    .lightbox-close:hover,
+    .lightbox-close:focus {
+      color: var(--accent-amber);
+      text-decoration: none;
+    }
+
+    .lightbox-caption {
+      margin: auto;
+      display: block;
+      width: 80%;
+      max-width: 800px;
+      text-align: center;
+      color: var(--accent-cyan);
+      padding: 15px 0;
+      font-family: var(--font-body);
+      font-size: 0.9rem;
+      letter-spacing: 1px;
+    }
+
+
+
+    /* ----------------------------------------------------
+       RESPONSIVE DESIGN (MEDIA QUERIES)
+       ---------------------------------------------------- */
+    @media (max-width: 1024px) {
+      .hero-content {
+        width: 100%;
+        padding-right: 2rem;
+      }
+      #threejs-hero-container {
+        opacity: 0.25;
+        width: 100%;
+      }
+      .projects-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+      .skills-layout {
+        grid-template-columns: 1fr;
+        gap: 40px;
+      }
+      .fusion-layout {
+        grid-template-columns: 1fr;
+        gap: 40px;
+      }
+      .contact-layout {
+        grid-template-columns: 1fr;
+        gap: 40px;
+      }
+
+    }
+
+    @media (max-width: 768px) {
+      * {
+        cursor: auto !important; /* Revert cursor on mobile */
+      }
+      #custom-cursor-canvas {
+        display: none !important;
+      }
+      .hero-title {
+        font-size: 2.8rem;
+      }
+      .hero-subtitle {
+        font-size: 1.25rem;
+      }
+      .about-grid {
+        grid-template-columns: 1fr;
+        gap: 40px;
+      }
+      .projects-grid {
+        grid-template-columns: 1fr;
+      }
+      .timeline::before {
+        left: 20px;
+      }
+      .timeline-item {
+        padding-left: 50px;
+      }
+      .timeline-dot {
+        left: 11px;
+      }
+      .menu-toggle {
+        display: block;
+      }
+      .nav-links {
+        display: none; /* Simple toggle implementation */
+        flex-direction: column;
+        position: absolute;
+        top: 70px;
+        left: 0;
+        width: 100%;
+        background: rgba(0, 0, 0, 0.95);
+        backdrop-filter: blur(12px);
+        padding: 2rem;
+        border-bottom: 1px solid var(--accent-cyan-dim);
+        gap: 1.5rem;
+      }
+      .nav-links.mobile-open {
+        display: flex;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- AutoCAD Grid Background Canvas -->
+  <canvas id="autocad-grid-canvas"></canvas>
+
+  <!-- Custom HUD Cursor Trail Overlay -->
+  <canvas id="custom-cursor-canvas"></canvas>
+
+  <!-- Mechanical Components Container -->
+  <div id="mechanical-components-container">
+    <!-- Component 1: 12-Tooth Gear -->
+    <div class="cad-component-wrapper" id="cad-gear" style="left: 10%; top: 20%; width: 120px; height: 120px;">
+      <svg class="blueprint-svg" viewBox="0 0 100 100" width="100%" height="100%">
+        <circle cx="50" cy="50" r="30" fill="none" stroke-width="1.5" />
+        <circle cx="50" cy="50" r="10" fill="none" stroke-width="1" stroke-dasharray="2,2" />
+        <circle cx="50" cy="50" r="5" fill="none" stroke-width="1" />
+        <line x1="50" y1="20" x2="50" y2="80" stroke-width="1" />
+        <line x1="20" y1="50" x2="80" y2="50" stroke-width="1" />
+        <line x1="50" y1="5" x2="50" y2="95" stroke-width="0.5" stroke-dasharray="5,3" />
+        <line x1="5" y1="50" x2="95" y2="50" stroke-width="0.5" stroke-dasharray="5,3" />
+        <path d="M 50 15 L 47 15 L 46 20 L 54 20 L 53 15 Z" transform="rotate(0 50 50)" fill="none" stroke-width="1.5" />
+        <path d="M 50 15 L 47 15 L 46 20 L 54 20 L 53 15 Z" transform="rotate(30 50 50)" fill="none" stroke-width="1.5" />
+        <path d="M 50 15 L 47 15 L 46 20 L 54 20 L 53 15 Z" transform="rotate(60 50 50)" fill="none" stroke-width="1.5" />
+        <path d="M 50 15 L 47 15 L 46 20 L 54 20 L 53 15 Z" transform="rotate(90 50 50)" fill="none" stroke-width="1.5" />
+        <path d="M 50 15 L 47 15 L 46 20 L 54 20 L 53 15 Z" transform="rotate(120 50 50)" fill="none" stroke-width="1.5" />
+        <path d="M 50 15 L 47 15 L 46 20 L 54 20 L 53 15 Z" transform="rotate(150 50 50)" fill="none" stroke-width="1.5" />
+        <path d="M 50 15 L 47 15 L 46 20 L 54 20 L 53 15 Z" transform="rotate(180 50 50)" fill="none" stroke-width="1.5" />
+        <path d="M 50 15 L 47 15 L 46 20 L 54 20 L 53 15 Z" transform="rotate(210 50 50)" fill="none" stroke-width="1.5" />
+        <path d="M 50 15 L 47 15 L 46 20 L 54 20 L 53 15 Z" transform="rotate(240 50 50)" fill="none" stroke-width="1.5" />
+        <path d="M 50 15 L 47 15 L 46 20 L 54 20 L 53 15 Z" transform="rotate(270 50 50)" fill="none" stroke-width="1.5" />
+        <path d="M 50 15 L 47 15 L 46 20 L 54 20 L 53 15 Z" transform="rotate(300 50 50)" fill="none" stroke-width="1.5" />
+        <path d="M 50 15 L 47 15 L 46 20 L 54 20 L 53 15 Z" transform="rotate(330 50 50)" fill="none" stroke-width="1.5" />
+      </svg>
+      <div class="cad-tooltip">PART_NO: 12T-G-89 // RPM: 1200 // SPEC: STAINLESS</div>
+    </div>
+
+    <!-- Component 2: Hex Nut & Bolt -->
+    <div class="cad-component-wrapper" id="cad-bolt" style="left: 80%; top: 15%; width: 100px; height: 100px;">
+      <svg class="blueprint-svg" viewBox="0 0 100 100" width="100%" height="100%">
+        <polygon points="50,15 70,25 70,45 50,55 30,45 30,25" fill="none" stroke-width="1.5" />
+        <rect x="42" y="55" width="16" height="30" fill="none" stroke-width="1.5" />
+        <line x1="42" y1="60" x2="58" y2="62" stroke-width="1" />
+        <line x1="42" y1="65" x2="58" y2="67" stroke-width="1" />
+        <line x1="42" y1="70" x2="58" y2="72" stroke-width="1" />
+        <line x1="42" y1="75" x2="58" y2="77" stroke-width="1" />
+        <line x1="42" y1="80" x2="58" y2="82" stroke-width="1" />
+        <rect x="36" y="65" width="28" height="10" fill="none" stroke-width="1.2" />
+        <line x1="36" y1="70" x2="64" y2="70" stroke-width="0.8" stroke-dasharray="2,1" />
+        <line x1="50" y1="5" x2="50" y2="95" stroke-width="0.5" stroke-dasharray="5,3" />
+      </svg>
+      <div class="cad-tooltip">PART_NO: HB-M12-50 // THREAD: 1.75mm // SPEC: HIGH_TENSILE</div>
+    </div>
+
+    <!-- Component 3: Reciprocating Piston + Conrod -->
+    <div class="cad-component-wrapper" id="cad-piston" style="left: 85%; top: 60%; width: 110px; height: 140px;">
+      <svg class="blueprint-svg" viewBox="0 0 100 120" width="100%" height="100%">
+        <line x1="25" y1="10" x2="25" y2="85" stroke-width="1.2" stroke-dasharray="4,2" />
+        <line x1="75" y1="10" x2="75" y2="85" stroke-width="1.2" stroke-dasharray="4,2" />
+        <g id="piston-crown">
+          <rect x="28" y="20" width="44" height="25" fill="none" stroke-width="1.5" />
+          <line x1="28" y1="25" x2="72" y2="25" stroke-width="0.8" />
+          <line x1="28" y1="30" x2="72" y2="30" stroke-width="0.8" />
+          <line x1="28" y1="35" x2="72" y2="35" stroke-width="0.8" />
+          <circle cx="50" cy="35" r="5" fill="none" stroke-width="1" />
+        </g>
+        <g id="piston-conrod">
+          <line x1="50" y1="35" x2="50" y2="85" stroke-width="2" stroke-linecap="round" />
+          <circle cx="50" cy="85" r="4" fill="none" stroke-width="1.2" />
+        </g>
+        <g id="piston-crank">
+          <circle cx="50" cy="85" r="20" fill="none" stroke-width="1" stroke-dasharray="3,3" />
+          <circle cx="50" cy="85" r="3" fill="none" stroke-width="1.5" />
+          <line x1="50" y1="85" x2="50" y2="85" id="piston-crank-arm" stroke-width="1.5" />
+        </g>
+        <line x1="50" y1="5" x2="50" y2="115" stroke-width="0.5" stroke-dasharray="5,3" />
+      </svg>
+      <div class="cad-tooltip">PART_NO: PIS-CR-450 // STROKE: 85mm // COMPRESSION: 10.5:1</div>
+    </div>
+
+    <!-- Component 4: Shaft Cross-Section -->
+    <div class="cad-component-wrapper" id="cad-shaft" style="left: 15%; top: 75%; width: 110px; height: 110px;">
+      <svg class="blueprint-svg" viewBox="0 0 100 100" width="100%" height="100%">
+        <circle cx="50" cy="50" r="35" fill="none" stroke-width="1.5" />
+        <circle cx="50" cy="50" r="15" fill="none" stroke-width="1.2" />
+        <rect x="45" y="10" width="10" height="12" fill="none" stroke-width="1.2" />
+        <line x1="50" y1="5" x2="50" y2="95" stroke-width="0.5" stroke-dasharray="5,3" />
+        <line x1="5" y1="50" x2="95" y2="50" stroke-width="0.5" stroke-dasharray="5,3" />
+        <circle cx="50" cy="50" r="38" fill="none" stroke-width="0.6" stroke-dasharray="1,4" />
+        <circle cx="50" cy="50" r="12" fill="none" stroke-width="0.6" stroke-dasharray="1,2" />
+      </svg>
+      <div class="cad-tooltip">PART_NO: SH-CS-35 // DIA: 35mm // TOLERANCE: g6</div>
+    </div>
+
+    <!-- Component 5: Turbine Blade -->
+    <div class="cad-component-wrapper" id="cad-turbine" style="left: 45%; top: 80%; width: 110px; height: 110px;">
+      <svg class="blueprint-svg" viewBox="0 0 100 100" width="100%" height="100%">
+        <path d="M 20 50 C 35 30, 65 30, 80 50 C 65 60, 35 55, 20 50 Z" fill="none" stroke-width="1.5" />
+        <circle cx="35" cy="46" r="3" fill="none" stroke-width="1" />
+        <circle cx="50" cy="44" r="3" fill="none" stroke-width="1" />
+        <circle cx="65" cy="45" r="3" fill="none" stroke-width="1" />
+        <line x1="15" y1="50" x2="85" y2="50" stroke-width="0.5" stroke-dasharray="5,3" />
+        <path d="M 10 30 Q 30 20, 60 25" fill="none" stroke-width="0.8" stroke-dasharray="2,2" />
+        <path d="M 10 70 Q 30 65, 60 62" fill="none" stroke-width="0.8" stroke-dasharray="2,2" />
+        <line x1="56" y1="23" x2="60" y2="25" stroke-width="0.8" />
+        <line x1="56" y1="27" x2="60" y2="25" stroke-width="0.8" />
+      </svg>
+      <div class="cad-tooltip">PART_NO: TB-AERO-X // ANGLE: 14.5° // SPEC: NIMONIC_90</div>
+    </div>
+  </div>
+
+  <!-- NAVIGATION HEADER -->
+  <header>
+    <div class="nav-container">
+      <a href="#hero" class="logo">
+        <i class="fa-solid fa-gear"></i>
+        SP<span>.ENG</span>
+      </a>
+      <button class="menu-toggle" id="menu-toggle-btn" aria-label="Toggle Navigation Menu">
+        <i class="fa-solid fa-bars"></i>
+      </button>
+      <ul class="nav-links" id="nav-links-menu">
+        <li><a href="#hero" class="nav-link-item active">Home</a></li>
+        <li><a href="#about" class="nav-link-item">About</a></li>
+        <li><a href="#projects" class="nav-link-item">Projects</a></li>
+        <li><a href="#fusion" class="nav-link-item">Convergence</a></li>
+        <li><a href="#skills" class="nav-link-item">Skills</a></li>
+        <li><a href="#achievements" class="nav-link-item">Timeline</a></li>
+        <li><a href="#contact" class="nav-link-item">Contact</a></li>
+      </ul>
+    </div>
+  </header>
+
+  <!-- HERO SECTION -->
+  <section id="hero" class="hero">
+    <!-- Three.js Canvas Container -->
+    <div id="threejs-hero-container"></div>
+    
+    <div class="container hero-content">
+      <div class="hero-pretitle">ABES Engineering College, AKTU</div>
+      <h1 class="hero-title">SWAPNIL<br><span>PANDEY</span></h1>
+      <div class="hero-subtitle">
+        <span id="typing-text"></span><span class="typing-cursor"></span>
+      </div>
+      <p class="hero-desc">
+        Mechanical Engineering Undergraduate (2024–2028). Merging core mechanics with modern IoT, automation, and smart systems to construct the industrial solutions of tomorrow.
+      </p>
+      
+      <div class="hero-ctas">
+        <a href="#projects" class="btn btn-solid">
+          <span>View Projects</span>
+          <i class="fa-solid fa-arrow-right"></i>
+        </a>
+        <a href="https://www.linkedin.com/in/swapnil-pandey-aa9519316?utm_source=share_via&utm_content=profile&utm_medium=member_android" target="_blank" rel="noopener noreferrer" class="btn">
+          <span>LinkedIn</span>
+          <i class="fa-brands fa-linkedin-in"></i>
+        </a>
+      </div>
+    </div>
+
+    <!-- Tech specs footer overlay -->
+    <div class="hero-tech-specs">
+      <span>SYS_LOC: ABES_EC.AKTU</span>
+      <span>SYS_STATUS: ACTIVE // YEAR_02</span>
+      <span>COORDS: 28.6365° N, 77.4475° E</span>
+    </div>
+  </section>
+
+  <!-- ABOUT SECTION -->
+  <section id="about">
+    <div class="container">
+      <div class="section-title-wrap scroll-reveal">
+        <div class="section-subtitle-bg">SYSTEM</div>
+        <h2 class="section-title">ABOUT <span>SWAPNIL</span></h2>
+      </div>
+
+      <div class="about-grid">
+        <div class="about-bio-text scroll-reveal">
+          <div class="readout">Overview / PROFILE SUMMARY</div>
+          <p>
+            I am a Mechanical Engineering undergraduate at ABES Engineering College (AKTU), batch of 2024–2028. My engineering philosophy revolves around bridge-building between traditional mechanical hardware and modern digital control mechanisms.
+          </p>
+          <p>
+            Specializing in IoT development, micro-controllers, and smart systems automation, I apply code to thermal and physical frameworks. This integration enables structures to react dynamically, monitor energy consumption, and operate with intelligent autonomy.
+          </p>
+          <div class="about-bio-highlights">
+            <div class="highlight-item"><i class="fa-solid fa-circle-dot"></i> <span>IoT & Microcontrollers (ESP8266)</span></div>
+            <div class="highlight-item"><i class="fa-solid fa-circle-dot"></i> <span>CAD Modelling (SolidWorks, AutoCAD)</span></div>
+            <div class="highlight-item"><i class="fa-solid fa-circle-dot"></i> <span>Materials Analysis & Testing</span></div>
+            <div class="highlight-item"><i class="fa-solid fa-circle-dot"></i> <span>Conversational NLP Systems</span></div>
+          </div>
+        </div>
+
+        <div class="stats-grid stagger-parent">
+          <!-- Stat 1 -->
+          <div class="hud-box stat-card glow-hover">
+            <div class="hud-box-inner-anchor"></div>
+            <div class="stat-numberCount" data-target="3">0</div>
+            <div class="stat-number" style="display: none;">3</div>
+            <div class="stat-label">Projects Built</div>
+          </div>
+          <!-- Stat 2 -->
+          <div class="hud-box stat-card glow-hover amber-theme">
+            <div class="hud-box-inner-anchor"></div>
+            <div class="stat-numberCount" data-target="5">0</div><span>+</span>
+            <div class="stat-number" style="display: none;">5</div>
+            <div class="stat-label">Tech Skills</div>
+          </div>
+          <!-- Stat 3 -->
+          <div class="hud-box stat-card glow-hover amber-theme">
+            <div class="hud-box-inner-anchor"></div>
+            <div class="stat-numberCount" data-target="1">0</div><span>st</span>
+            <div class="stat-number" style="display: none;">1</div>
+            <div class="stat-label">CII Majestic Pos</div>
+          </div>
+          <!-- Stat 4 -->
+          <div class="hud-box stat-card glow-hover">
+            <div class="hud-box-inner-anchor"></div>
+            <div class="stat-numberCount" data-target="4">0</div>
+            <div class="stat-number" style="display: none;">4</div>
+            <div class="stat-label">Memberships</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- PROJECTS SECTION -->
+  <section id="projects">
+    <div class="container">
+      <div class="section-title-wrap scroll-reveal">
+        <div class="section-subtitle-bg">SCHEMATICS</div>
+        <h2 class="section-title">ENGINEERED <span>PROJECTS</span></h2>
+      </div>
+
+      <div class="projects-grid stagger-parent">
+        <!-- Project 1 -->
+        <div class="project-card">
+          <div class="project-card-inner">
+            <div class="project-card-front">
+              <div class="project-icon"><i class="fa-solid fa-house-laptop"></i></div>
+              <h3>Smart Home Automation System</h3>
+              <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 20px;">
+                An intelligent system enabling motion-based device controls and remote operations.
+              </p>
+              <div class="tech-stack">
+                <span class="tech-tag">IoT</span>
+                <span class="tech-tag">ESP8266</span>
+                <span class="tech-tag">Python</span>
+                <span class="tech-tag">AJAX</span>
+              </div>
+            </div>
+            <div class="project-card-back">
+              <div>
+                <h3>Smart Home System</h3>
+                <div class="readout amber" style="margin-bottom: 15px;">PROJECT_DESTRUCT_LOG</div>
+                <ul class="project-highlights">
+                  <li>Motion-based sensor grid for dynamic energy routing</li>
+                  <li>Real-time asynchronous UI state updates via AJAX</li>
+                  <li>Energy conservation optimization testing (15% reduction)</li>
+                </ul>
+              </div>
+              <div class="project-action">
+                <span>SIMULATE DATA</span>
+                <i class="fa-solid fa-chevron-right"></i>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Project 2 -->
+        <div class="project-card">
+          <div class="project-card-inner">
+            <div class="project-card-front">
+              <div class="project-icon"><i class="fa-solid fa-temperature-arrow-up"></i></div>
+              <h3>Heat Treatment & Hardness Analysis</h3>
+              <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 20px;">
+                Materials science research analyzing hardening processes across carbon steel alloys.
+              </p>
+              <div class="tech-stack">
+                <span class="tech-tag">Material Science</span>
+                <span class="tech-tag">Lab Testing</span>
+                <span class="tech-tag">Steel Alloys</span>
+              </div>
+            </div>
+            <div class="project-card-back">
+              <div>
+                <h3>Material Analysis</h3>
+                <div class="readout amber" style="margin-bottom: 15px;">METALLURGY_ANALYSIS</div>
+                <ul class="project-highlights">
+                  <li>Comparative analysis of Annealing, Quenching, and Tempering</li>
+                  <li>Hardness evaluations utilizing Brinell & Rockwell systems</li>
+                  <li>Microstructural transformation data logging</li>
+                </ul>
+              </div>
+              <div class="project-action">
+                <span>VIEW SCHEMATICS</span>
+                <i class="fa-solid fa-chevron-right"></i>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Project 3 -->
+        <div class="project-card">
+          <div class="project-card-inner">
+            <div class="project-card-front">
+              <div class="project-icon"><i class="fa-solid fa-brain"></i></div>
+              <h3>AI Chatbot for Mental Health</h3>
+              <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 20px;">
+                An accessible conversational assistant offering empathetic feedback and cognitive logs.
+              </p>
+              <div class="tech-stack">
+                <span class="tech-tag">Python</span>
+                <span class="tech-tag">NLP</span>
+                <span class="tech-tag">UX Design</span>
+              </div>
+            </div>
+            <div class="project-card-back">
+              <div>
+                <h3>AI Support Bot</h3>
+                <div class="readout amber" style="margin-bottom: 15px;">COGNITIVE_CORE</div>
+                <ul class="project-highlights">
+                  <li>Empathetic conversational response mappings</li>
+                  <li>Contextual memory processing using standard NLP parser</li>
+                  <li>Optimized for accessibility and fast load times</li>
+                </ul>
+              </div>
+              <div class="project-action">
+                <span>INITIALIZE CHAT</span>
+                <i class="fa-solid fa-chevron-right"></i>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Project Gallery Showcase -->
+      <div class="gallery-showcase scroll-reveal">
+        <div class="readout" style="margin-bottom: 20px;">PROJECT_SHOWCASE // VISUAL_LOGS</div>
+        
+        <!-- Gallery Tabs -->
+        <div class="gallery-tabs">
+          <button class="gallery-tab-btn active" data-project="automation">Smart Home Automation</button>
+          <button class="gallery-tab-btn" data-project="metallurgy">Heat Treatment Analysis</button>
+          <button class="gallery-tab-btn" data-project="chatbot">AI Mental Health Chatbot</button>
+        </div>
+
+        <!-- Gallery Contents -->
+        <div class="gallery-content-wrap hud-box glow-hover">
+          <div class="hud-box-inner-anchor"></div>
+          
+          <!-- Category 1: Smart Home Automation -->
+          <div class="gallery-grid active" id="gallery-automation">
+            <div class="gallery-item" data-src="assets/smart_home_automation/WhatsApp Image 2026-05-30 at 1.04.31 PM.jpeg" data-caption="Smart Home Automation - Device Setup & Wiring Diagram">
+              <div class="gallery-img-container">
+                <img src="assets/smart_home_automation/WhatsApp Image 2026-05-30 at 1.04.31 PM.jpeg" alt="Smart Home Automation 1" loading="lazy">
+                <div class="gallery-overlay"><i class="fa-solid fa-maximize"></i></div>
+              </div>
+              <div class="gallery-label">SYSTEM_HARDWARE_BOARD.JPG</div>
+            </div>
+            
+            <div class="gallery-item" data-src="assets/smart_home_automation/WhatsApp Image 2026-05-30 at 1.04.33 PM.jpeg" data-caption="Smart Home Automation - Sensor Nodes and Relay Control Interface">
+              <div class="gallery-img-container">
+                <img src="assets/smart_home_automation/WhatsApp Image 2026-05-30 at 1.04.33 PM.jpeg" alt="Smart Home Automation 2" loading="lazy">
+                <div class="gallery-overlay"><i class="fa-solid fa-maximize"></i></div>
+              </div>
+              <div class="gallery-label">NODE_RELAY_INTERFACE.JPG</div>
+            </div>
+            
+            <div class="gallery-item" data-src="assets/smart_home_automation/WhatsApp Image 2026-05-30 at 1.04.34 PM.jpeg" data-caption="Smart Home Automation - Power Supply and Wiring Layout">
+              <div class="gallery-img-container">
+                <img src="assets/smart_home_automation/WhatsApp Image 2026-05-30 at 1.04.34 PM.jpeg" alt="Smart Home Automation 3" loading="lazy">
+                <div class="gallery-overlay"><i class="fa-solid fa-maximize"></i></div>
+              </div>
+              <div class="gallery-label">POWER_SUPPLY_MODULE.JPG</div>
+            </div>
+
+            <div class="gallery-item" data-src="assets/smart_home_automation/WhatsApp Image 2026-05-30 at 1.04.34 PM (1).jpeg" data-caption="Smart Home Automation - Fully Integrated ESP8266 Control Board">
+              <div class="gallery-img-container">
+                <img src="assets/smart_home_automation/WhatsApp Image 2026-05-30 at 1.04.34 PM (1).jpeg" alt="Smart Home Automation 4" loading="lazy">
+                <div class="gallery-overlay"><i class="fa-solid fa-maximize"></i></div>
+              </div>
+              <div class="gallery-label">INTEGRATED_MCU_BOARD.JPG</div>
+            </div>
+          </div>
+
+          <!-- Category 2: Heat Treatment -->
+          <div class="gallery-grid" id="gallery-metallurgy">
+            <div class="gallery-item" data-src="assets/heat_treatment/WhatsApp Image 2026-05-30 at 1.13.36 PM.jpeg" data-caption="Heat Treatment - Microstructure Microscopic Image Analysis">
+              <div class="gallery-img-container">
+                <img src="assets/heat_treatment/WhatsApp Image 2026-05-30 at 1.13.36 PM.jpeg" alt="Heat Treatment 1" loading="lazy">
+                <div class="gallery-overlay"><i class="fa-solid fa-maximize"></i></div>
+              </div>
+              <div class="gallery-label">MICROSTRUCTURE_SAMPLE.JPG</div>
+            </div>
+            
+            <div class="gallery-item" data-src="assets/heat_treatment/WhatsApp Image 2026-05-30 at 1.13.36 PM (1).jpeg" data-caption="Heat Treatment - Hardness Indentation Measurement Under Load">
+              <div class="gallery-img-container">
+                <img src="assets/heat_treatment/WhatsApp Image 2026-05-30 at 1.13.36 PM (1).jpeg" alt="Heat Treatment 2" loading="lazy">
+                <div class="gallery-overlay"><i class="fa-solid fa-maximize"></i></div>
+              </div>
+              <div class="gallery-label">HARDNESS_INDENTATION.JPG</div>
+            </div>
+            
+            <div class="gallery-item" data-src="assets/heat_treatment/WhatsApp Image 2026-05-30 at 1.13.37 PM.jpeg" data-caption="Heat Treatment - Thermal Alloy Sample Prep and Testing Specimen">
+              <div class="gallery-img-container">
+                <img src="assets/heat_treatment/WhatsApp Image 2026-05-30 at 1.13.37 PM.jpeg" alt="Heat Treatment 3" loading="lazy">
+                <div class="gallery-overlay"><i class="fa-solid fa-maximize"></i></div>
+              </div>
+              <div class="gallery-label">ALLOY_SAMPLE_PREP.JPG</div>
+            </div>
+          </div>
+
+          <!-- Category 3: AI Mental Health Chatbot -->
+          <div class="gallery-grid" id="gallery-chatbot">
+            <div class="gallery-item" data-src="assets/mental_health_chatbot/WhatsApp Image 2026-05-30 at 1.13.40 PM.jpeg" data-caption="AI Mental Health Chatbot - User Chat Interface Prototype">
+              <div class="gallery-img-container">
+                <img src="assets/mental_health_chatbot/WhatsApp Image 2026-05-30 at 1.13.40 PM.jpeg" alt="AI Chatbot 1" loading="lazy">
+                <div class="gallery-overlay"><i class="fa-solid fa-maximize"></i></div>
+              </div>
+              <div class="gallery-label">UI_CONSOLE_PROTOTYPE.JPG</div>
+            </div>
+            
+            <div class="gallery-item" data-src="assets/mental_health_chatbot/WhatsApp Image 2026-05-30 at 1.13.41 PM.jpeg" data-caption="AI Mental Health Chatbot - NLP Intent Map Flow & Logic">
+              <div class="gallery-img-container">
+                <img src="assets/mental_health_chatbot/WhatsApp Image 2026-05-30 at 1.13.41 PM.jpeg" alt="AI Chatbot 2" loading="lazy">
+                <div class="gallery-overlay"><i class="fa-solid fa-maximize"></i></div>
+              </div>
+              <div class="gallery-label">NLP_LOGIC_SCHEMATIC.JPG</div>
+            </div>
+            
+            <div class="gallery-item" data-src="assets/mental_health_chatbot/WhatsApp Image 2026-05-30 at 1.13.41 PM (1).jpeg" data-caption="AI Mental Health Chatbot - Session Analytics & Data Telemetry Console">
+              <div class="gallery-img-container">
+                <img src="assets/mental_health_chatbot/WhatsApp Image 2026-05-30 at 1.13.41 PM (1).jpeg" alt="AI Chatbot 3" loading="lazy">
+                <div class="gallery-overlay"><i class="fa-solid fa-maximize"></i></div>
+              </div>
+              <div class="gallery-label">SESSION_DATA_ANALYTICS.JPG</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CONVERGENCE / MECHATRONICS FUSION SECTION -->
+  <section id="fusion" class="scroll-reveal">
+    <div class="container">
+      <div class="section-title-wrap">
+        <div class="section-subtitle-bg">CONVERGENCE</div>
+        <h2 class="section-title">MECHATRONICS <span>FUSION</span></h2>
+      </div>
+
+      <div class="fusion-layout">
+        <!-- Column 1: Venn Diagram SVG -->
+        <div class="venn-container">
+          <svg class="venn-svg" viewBox="0 0 400 300">
+            <defs>
+              <linearGradient id="venn-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="var(--accent-cyan)" />
+                <stop offset="100%" stop-color="var(--accent-amber)" />
+              </linearGradient>
+            </defs>
+            
+            <circle class="venn-circle-left" cx="160" cy="150" r="85" />
+            <circle class="venn-circle-right" cx="240" cy="150" r="85" />
+            <path class="venn-intersection" d="M 200 75 A 85 85 0 0 1 200 225 A 85 85 0 0 1 200 75 Z" />
+            
+            <text class="venn-text" x="100" y="145" text-anchor="middle">MECHANICAL</text>
+            <text class="venn-text" x="100" y="160" text-anchor="middle">SYSTEMS</text>
+            
+            <text class="venn-text" x="300" y="145" text-anchor="middle">DIGITAL</text>
+            <text class="venn-text" x="300" y="160" text-anchor="middle">CONTROL</text>
+            
+            <text class="venn-text venn-text-center" x="200" y="145" text-anchor="middle">MECHATRONICS</text>
+            <text class="venn-text venn-text-center" x="200" y="160" text-anchor="middle">FUSION</text>
+            
+            <line x1="200" y1="75" x2="200" y2="40" stroke="var(--accent-cyan)" stroke-width="0.8" stroke-dasharray="2,2" />
+            <circle cx="200" cy="40" r="2" fill="var(--accent-cyan)" />
+            <text class="venn-text" x="200" y="30" text-anchor="middle" fill="var(--accent-cyan)">SMART SYSTEMS ARCHITECTURE</text>
+          </svg>
+        </div>
+
+        <!-- Column 2: Spec / Explanations -->
+        <div class="fusion-details stagger-parent">
+          <div class="hud-box fusion-block glow-hover">
+            <div class="hud-box-inner-anchor"></div>
+            <div class="readout">DOMAIN_01 // PHYSICAL</div>
+            <h3>Mechanical Engineering Core</h3>
+            <p>
+              Applying principles of thermodynamics, kinematics, materials testing, and mechanical drafting (AutoCAD/SolidWorks) to build efficient thermal, fluidic, and structural systems.
+            </p>
+          </div>
+          
+          <div class="hud-box fusion-block glow-hover amber-theme">
+            <div class="hud-box-inner-anchor"></div>
+            <div class="readout amber">DOMAIN_02 // DIGITAL</div>
+            <h3>Digital Control & Code</h3>
+            <p>
+              Developing custom software stacks and firmware logic in Python and C++ to control physical mechanisms, monitor performance, and interface with micro-controllers.
+            </p>
+          </div>
+          
+          <div class="hud-box fusion-block glow-hover">
+            <div class="hud-box-inner-anchor"></div>
+            <div class="readout">INTERSECT_03 // SMART_SYSTEMS</div>
+            <h3>Mechatronics Convergence</h3>
+            <p>
+              The fusion: Embedded IoT systems (ESP8266), sensor integrations (analog/digital), and automated actuators that bring physical machines to life with intelligent real-time controls.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+
+
+  <!-- Lightbox Modal for Gallery Visual Logs -->
+  <div id="gallery-lightbox" class="lightbox-modal">
+    <span class="lightbox-close" id="lightbox-close-btn">&times;</span>
+    <img class="lightbox-content" id="lightbox-img" src="" alt="Expanded View">
+    <div id="lightbox-caption" class="lightbox-caption"></div>
+  </div>
+
+  <!-- SKILLS SECTION -->
+  <section id="skills">
+    <div class="container">
+      <div class="section-title-wrap scroll-reveal">
+        <div class="section-subtitle-bg">ENGINE</div>
+        <h2 class="section-title">TECHNICAL <span>SKILLS</span></h2>
+      </div>
+
+      <div class="skills-layout">
+        <!-- Interactive 3D Cube -->
+        <div class="cube-section scroll-reveal">
+          <div class="cube-container">
+            <div class="cube" id="interactive-cube">
+              <!-- Front Face: Mechanical -->
+              <div class="cube-face face-front" data-category="mech">
+                <i class="fa-solid fa-gears"></i>
+                <h4>Mechanical Core</h4>
+                <p>Click to view specs</p>
+              </div>
+              <!-- Back Face: Programming -->
+              <div class="cube-face face-back" data-category="prog">
+                <i class="fa-solid fa-code"></i>
+                <h4>Programming</h4>
+                <p>Click to view specs</p>
+              </div>
+              <!-- Right Face: IoT -->
+              <div class="cube-face face-right" data-category="iot">
+                <i class="fa-solid fa-microchip"></i>
+                <h4>IoT & Hardware</h4>
+                <p>Click to view specs</p>
+              </div>
+              <!-- Left Face: Tools -->
+              <div class="cube-face face-left" data-category="tools">
+                <i class="fa-solid fa-wrench"></i>
+                <h4>Software & Tools</h4>
+                <p>Click to view specs</p>
+              </div>
+              <!-- Top Face: Summary -->
+              <div class="cube-face face-top" data-category="mech">
+                <i class="fa-solid fa-gauge-high"></i>
+                <h4>Automation</h4>
+                <p>Click to view specs</p>
+              </div>
+              <!-- Bottom Face: Academy -->
+              <div class="cube-face face-bottom" data-category="iot">
+                <i class="fa-solid fa-wifi"></i>
+                <h4>Smart Systems</h4>
+                <p>Click to view specs</p>
+              </div>
+            </div>
+          </div>
+          <div class="cube-instructions">
+            <i class="fa-solid fa-circle-info"></i>
+            <span>Click cube faces to toggle tech stack categories</span>
+          </div>
+        </div>
+
+        <!-- Progress Bars (Interactive panels toggled by Cube) -->
+        <div class="skills-bars-container hud-box glow-hover">
+          <div class="hud-box-inner-anchor"></div>
+          
+          <!-- Category 1: Mechanical Core -->
+          <div class="skill-category-block active" id="skills-mech">
+            <div class="skills-category-title">
+              MECHANICAL CORE <span>CORE_MECHANICS.SYS</span>
+            </div>
+            
+            <div class="skill-bar-wrap">
+              <div class="skill-label-info">
+                <span>Thermodynamics</span>
+                <span>80%</span>
+              </div>
+              <div class="skill-bar-bg">
+                <div class="skill-bar-fill" data-width="80%"></div>
+              </div>
+            </div>
+            
+            <div class="skill-bar-wrap">
+              <div class="skill-label-info">
+                <span>IC Engines</span>
+                <span>75%</span>
+              </div>
+              <div class="skill-bar-bg">
+                <div class="skill-bar-fill" data-width="75%"></div>
+              </div>
+            </div>
+            
+            <div class="skill-bar-wrap">
+              <div class="skill-label-info">
+                <span>Heat Treatment & Metallurgy</span>
+                <span>85%</span>
+              </div>
+              <div class="skill-bar-bg">
+                <div class="skill-bar-fill" data-width="85%"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Category 2: Programming -->
+          <div class="skill-category-block" id="skills-prog">
+            <div class="skills-category-title">
+              PROGRAMMING <span>COMPILER_CORE.LOG</span>
+            </div>
+            
+            <div class="skill-bar-wrap">
+              <div class="skill-label-info">
+                <span>Python</span>
+                <span>80%</span>
+              </div>
+              <div class="skill-bar-bg">
+                <div class="skill-bar-fill" data-width="80%"></div>
+              </div>
+            </div>
+            
+            <div class="skill-bar-wrap">
+              <div class="skill-label-info">
+                <span>C++</span>
+                <span>70%</span>
+              </div>
+              <div class="skill-bar-bg">
+                <div class="skill-bar-fill" data-width="70%"></div>
+              </div>
+            </div>
+            
+            <div class="skill-bar-wrap">
+              <div class="skill-label-info">
+                <span>HTML / CSS / JavaScript</span>
+                <span>75%</span>
+              </div>
+              <div class="skill-bar-bg">
+                <div class="skill-bar-fill" data-width="75%"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Category 3: IoT & Hardware -->
+          <div class="skill-category-block" id="skills-iot">
+            <div class="skills-category-title">
+              IoT & HARDWARE <span>FIRMWARE_MCU.HEX</span>
+            </div>
+            
+            <div class="skill-bar-wrap">
+              <div class="skill-label-info">
+                <span>ESP8266 Controller</span>
+                <span>85%</span>
+              </div>
+              <div class="skill-bar-bg">
+                <div class="skill-bar-fill" data-width="85%"></div>
+              </div>
+            </div>
+            
+            <div class="skill-bar-wrap">
+              <div class="skill-label-info">
+                <span>Relay Modules & Power Control</span>
+                <span>80%</span>
+              </div>
+              <div class="skill-bar-bg">
+                <div class="skill-bar-fill" data-width="80%"></div>
+              </div>
+            </div>
+            
+            <div class="skill-bar-wrap">
+              <div class="skill-label-info">
+                <span>Sensor Interfacing (Analog/Digital)</span>
+                <span>85%</span>
+              </div>
+              <div class="skill-bar-bg">
+                <div class="skill-bar-fill" data-width="85%"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Category 4: Software & Tools -->
+          <div class="skill-category-block" id="skills-tools">
+            <div class="skills-category-title">
+              CAD & PRODUCTIVITY TOOLS <span>DRAFTING_SUITE.DLL</span>
+            </div>
+            
+            <div class="skill-bar-wrap">
+              <div class="skill-label-info">
+                <span>AutoCAD</span>
+                <span>80%</span>
+              </div>
+              <div class="skill-bar-bg">
+                <div class="skill-bar-fill" data-width="80%"></div>
+              </div>
+            </div>
+            
+            <div class="skill-bar-wrap">
+              <div class="skill-label-info">
+                <span>SolidWorks</span>
+                <span>75%</span>
+              </div>
+              <div class="skill-bar-bg">
+                <div class="skill-bar-fill" data-width="75%"></div>
+              </div>
+            </div>
+            
+            <div class="skill-bar-wrap">
+              <div class="skill-label-info">
+                <span>MS Excel & Data Processing</span>
+                <span>80%</span>
+              </div>
+              <div class="skill-bar-bg">
+                <div class="skill-bar-fill" data-width="80%"></div>
+              </div>
+            </div>
+
+            <div class="skill-bar-wrap">
+              <div class="skill-label-info">
+                <span>Canva & UX Design</span>
+                <span>85%</span>
+              </div>
+              <div class="skill-bar-bg">
+                <div class="skill-bar-fill" data-width="85%"></div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- TIMELINE / ACHIEVEMENTS SECTION -->
+  <section id="achievements">
+    <div class="container">
+      <div class="section-title-wrap scroll-reveal">
+        <div class="section-subtitle-bg">CHRONOLOGY</div>
+        <h2 class="section-title">CHRONOLOGICAL <span>TIMELINE</span></h2>
+      </div>
+
+      <div class="timeline stagger-parent">
+        <!-- Event 1 -->
+        <div class="timeline-item">
+          <div class="timeline-dot"></div>
+          <div class="hud-box timeline-content glow-hover">
+            <div class="hud-box-inner-anchor"></div>
+            <div class="timeline-header">
+              <span class="timeline-badge">COMPETITION</span>
+              <span class="timeline-date">2025</span>
+            </div>
+            <h3>🥇 CII Majestic — 1st Position</h3>
+            <p>
+              Awarded First Position in the national CII Majestic technical showcase. Designed and presented automated engineering solution concepts optimizing material management workflows.
+            </p>
+          </div>
+        </div>
+
+        <!-- Event 2 -->
+        <div class="timeline-item">
+          <div class="timeline-dot"></div>
+          <div class="hud-box timeline-content glow-hover amber-theme">
+            <div class="hud-box-inner-anchor"></div>
+            <div class="timeline-header">
+              <span class="timeline-badge">STARTUP CHALLENGE</span>
+              <span class="timeline-date">2025</span>
+            </div>
+            <h3>🚀 Startup India Idea Event</h3>
+            <p>
+              Pitched an innovative smart-grid design addressing energy waste in suburban infrastructures. Finished in the top innovator cohort at the regional Innovation Challenge level.
+            </p>
+          </div>
+        </div>
+
+        <!-- Event 3 -->
+        <div class="timeline-item">
+          <div class="timeline-dot"></div>
+          <div class="hud-box timeline-content glow-hover">
+            <div class="hud-box-inner-anchor"></div>
+            <div class="timeline-header">
+              <span class="timeline-badge">TECHNICAL PROJECT</span>
+              <span class="timeline-date">2024</span>
+            </div>
+            <h3>🔬 OPTICA Technical Event</h3>
+            <p>
+              Collaborated on a localized laser refraction test rig. Managed system design integrations and sensor logging architectures to gauge environmental diffraction rates.
+            </p>
+          </div>
+        </div>
+
+        <!-- Event 4 -->
+        <div class="timeline-item">
+          <div class="timeline-dot"></div>
+          <div class="hud-box timeline-content glow-hover amber-theme">
+            <div class="hud-box-inner-anchor"></div>
+            <div class="timeline-header">
+              <span class="timeline-badge">SOCIETY MEMBERSHIP</span>
+              <span class="timeline-date">2024 – Present</span>
+            </div>
+            <h3>🌬️ ASHRAE Member</h3>
+            <p>
+              Active member of the American Society of Heating, Refrigerating and Air-Conditioning Engineers. Participating in technical workshops on sustainable thermal design and ventilation safety protocols.
+            </p>
+          </div>
+        </div>
+
+        <!-- Event 5 -->
+        <div class="timeline-item">
+          <div class="timeline-dot"></div>
+          <div class="hud-box timeline-content glow-hover">
+            <div class="hud-box-inner-anchor"></div>
+            <div class="timeline-header">
+              <span class="timeline-badge">COLLEGE CLUB</span>
+              <span class="timeline-date">2024 – Present</span>
+            </div>
+            <h3>🚗 Autoenovators Club</h3>
+            <p>
+              Technical division member. Designing custom combustion/electric hybrid models and working on automotive automation sensor clusters.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CONTACT SECTION -->
+  <section id="contact">
+    <div class="container">
+      <div class="section-title-wrap scroll-reveal">
+        <div class="section-subtitle-bg">COMMUNICATION</div>
+        <h2 class="section-title">COMM <span>CONTACT</span></h2>
+      </div>
+
+      <div class="contact-layout">
+        <!-- Contact details -->
+        <div class="contact-card-wrap scroll-reveal">
+          <div class="hud-box glow-hover" style="height: 100%;">
+            <div class="hud-box-inner-anchor"></div>
+            <div class="readout">COMMUNICATIONS_DESK</div>
+            <h3>Swapnil Pandey</h3>
+            <p style="color: var(--text-muted); margin-bottom: 30px;">
+              Have a query or a collaborative project proposal? Feel free to contact via any node. Response window: ~12 hours.
+            </p>
+
+            <div class="contact-info-list">
+              <!-- Node 1: Email -->
+              <div class="contact-info-item">
+                <div class="contact-icon-box">
+                  <i class="fa-solid fa-envelope"></i>
+                </div>
+                <div class="contact-info-detail">
+                  <h4>Secure Email Address</h4>
+                  <a href="mailto:luckypandey213141@gmail.com">luckypandey213141@gmail.com</a>
+                </div>
+              </div>
+
+              <!-- Node 2: Phone -->
+              <div class="contact-info-item">
+                <div class="contact-icon-box">
+                  <i class="fa-solid fa-phone"></i>
+                </div>
+                <div class="contact-info-detail">
+                  <h4>Cell Line</h4>
+                  <p>+91 83549 75755</p>
+                </div>
+              </div>
+
+              <!-- Node 3: Location -->
+              <div class="contact-info-item">
+                <div class="contact-icon-box">
+                  <i class="fa-solid fa-location-dot"></i>
+                </div>
+                <div class="contact-info-detail">
+                  <h4>Current Station Coords</h4>
+                  <p>Ghaziabad, UP – 201014</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Contact Form -->
+        <div class="scroll-reveal">
+          <div class="hud-box glow-hover amber-theme">
+            <div class="hud-box-inner-anchor"></div>
+            <div class="readout amber">COMMS_FORM.BAT</div>
+            
+            <form class="contact-form" id="portfolio-contact-form">
+              <div class="form-group">
+                <label class="form-label" for="form-name">Sender Identifier (Name)</label>
+                <input class="form-input" type="text" id="form-name" placeholder="E.g. Captain Stark" required>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label" for="form-email">Return Node (Email)</label>
+                <input class="form-input" type="email" id="form-email" placeholder="E.g. stark@industries.com" required>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label" for="form-msg">Payload (Message Content)</label>
+                <textarea class="form-input" id="form-msg" placeholder="Write your transmission here..." required></textarea>
+              </div>
+
+              <div class="submit-wrap">
+                <button type="submit" class="btn btn-solid" style="border-color: var(--accent-amber); color: var(--bg-color); background: var(--accent-amber);">
+                  <span>Transmit</span>
+                  <i class="fa-solid fa-paper-plane"></i>
+                </button>
+              </div>
+            </form>
+            <div class="form-feedback success" id="form-success-msg">
+              <i class="fa-solid fa-circle-check"></i> TRANSMISSION DISPATCHED SECURELY.
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- AutoCAD Status Bar -->
+  <div id="autocad-status-bar">
+    <div>COORDS: <span id="cad-coords" class="active-coord">0.0000, 0.0000, 0.0000</span></div>
+    <div class="status-flags">
+      <span class="enabled">GRID</span>
+      <span class="enabled">SNAP</span>
+      <span>ORTHO</span>
+      <span class="enabled">OSNAP</span>
+      <span>OTRACK</span>
+      <span class="enabled">MODEL</span>
+    </div>
+    <div style="margin-left: auto;">SP_DESK_CONN: ACTIVE</div>
+  </div>
+
+  <!-- FOOTER -->
+  <footer>
+    <div class="container footer-grid">
+      <div class="footer-terminal">
+        SYS_VER: <span>1.0.8-stable</span><br>
+        TIMESTAMP: <span id="utc-clock">2026-05-29 00:00:00 UTC</span>
+      </div>
+      <div class="footer-copy">
+        DESIGNED FOR <span>SWAPNIL PANDEY</span> &copy; 2026.<br>
+        ABES ENGINEERING COLLEGE. ALL RIGHTS RESERVED.
+      </div>
+    </div>
+  </footer>
+
+  <!-- JS LOGIC -->
+  <script>
+    /* ----------------------------------------------------
+       AUTOCAD BACKGROUND GRID DRAWING
+       ---------------------------------------------------- */
+    const gridCanvas = document.getElementById('autocad-grid-canvas');
+    const gridCtx = gridCanvas.getContext('2d');
+    
+    function resizeGrid() {
+      gridCanvas.width = window.innerWidth;
+      gridCanvas.height = window.innerHeight;
+      drawGrid();
+    }
+    
+    function drawGrid() {
+      gridCtx.clearRect(0, 0, gridCanvas.width, gridCanvas.height);
+      
+      const width = gridCanvas.width;
+      const height = gridCanvas.height;
+      
+      gridCtx.lineWidth = 0.5;
+      
+      // Draw grid lines
+      for (let x = 0; x < width; x += 30) {
+        const isMajor = (x % 150 === 0);
+        gridCtx.strokeStyle = isMajor ? 'rgba(255, 255, 255, 0.09)' : 'rgba(255, 255, 255, 0.04)';
+        gridCtx.beginPath();
+        gridCtx.moveTo(x, 0);
+        gridCtx.lineTo(x, height);
+        gridCtx.stroke();
+      }
+      
+      for (let y = 0; y < height; y += 30) {
+        const isMajor = (y % 150 === 0);
+        gridCtx.strokeStyle = isMajor ? 'rgba(255, 255, 255, 0.09)' : 'rgba(255, 255, 255, 0.04)';
+        gridCtx.beginPath();
+        gridCtx.moveTo(0, y);
+        gridCtx.lineTo(width, y);
+        gridCtx.stroke();
+      }
+      
+      // Center UCS axes
+      const cx = width / 2;
+      const cy = height / 2;
+      gridCtx.lineWidth = 0.8;
+      gridCtx.strokeStyle = 'rgba(245, 166, 35, 0.18)'; // Amber UCS lines
+      
+      gridCtx.beginPath();
+      gridCtx.moveTo(0, cy);
+      gridCtx.lineTo(width, cy);
+      gridCtx.stroke();
+      
+      gridCtx.beginPath();
+      gridCtx.moveTo(cx, 0);
+      gridCtx.lineTo(cx, height);
+      gridCtx.stroke();
+    }
+    
+    window.addEventListener('resize', resizeGrid);
+    resizeGrid();
+
+    /* ----------------------------------------------------
+       AUTOCAD STATUS BAR & COORDINATES
+       ---------------------------------------------------- */
+    const coordEl = document.getElementById('cad-coords');
+    
+    window.addEventListener('mousemove', (e) => {
+      const dx = (e.clientX - window.innerWidth / 2).toFixed(4);
+      const dy = (window.innerHeight / 2 - e.clientY).toFixed(4);
+      if (coordEl) {
+        coordEl.textContent = `${dx}, ${dy}, 0.0000`;
+      }
+    });
+
+    /* ----------------------------------------------------
+       CUSTOM DRAFTING CROSSHAIR CURSOR
+       ---------------------------------------------------- */
+    const canvas = document.getElementById('custom-cursor-canvas');
+    const ctx = canvas.getContext('2d');
+    
+    let mouse = { x: 0, y: 0 };
+    let targetMouse = { x: 0, y: 0 };
+    let isHoveringInteractive = false;
+
+    function resizeCanvas() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    }
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+
+    window.addEventListener('mousemove', (e) => {
+      targetMouse.x = e.clientX;
+      targetMouse.y = e.clientY;
+    });
+
+    function updateInteractiveListeners() {
+      const interactives = document.querySelectorAll('a, button, .project-card, .cube-face, .blueprint-svg, input, textarea');
+      interactives.forEach(el => {
+        el.addEventListener('mouseenter', () => { isHoveringInteractive = true; });
+        el.addEventListener('mouseleave', () => { isHoveringInteractive = false; });
+      });
+    }
+
+    function drawCursor() {
+      mouse.x += (targetMouse.x - mouse.x) * 0.45;
+      mouse.y += (targetMouse.y - mouse.y) * 0.45;
+
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      ctx.strokeStyle = isHoveringInteractive ? '#f5a623' : '#00d4ff';
+      ctx.lineWidth = 0.8;
+
+      ctx.beginPath();
+      ctx.moveTo(mouse.x - 30, mouse.y);
+      ctx.lineTo(mouse.x + 30, mouse.y);
+      ctx.moveTo(mouse.x, mouse.y - 30);
+      ctx.lineTo(mouse.x, mouse.y + 30);
+      ctx.stroke();
+
+      ctx.beginPath();
+      ctx.rect(mouse.x - 3, mouse.y - 3, 6, 6);
+      ctx.stroke();
+
+      requestAnimationFrame(drawCursor);
+    }
+    drawCursor();
+
+    /* ----------------------------------------------------
+       TYPING SUBTITLE ANIMATION
+       ---------------------------------------------------- */
+    const roles = ["Mechanical Engineer", "IoT Developer", "Smart Systems Architect", "Mech + Code Hybrid", "Automation Engineer"];
+    let roleIdx = 0;
+    let charIdx = 0;
+    let isDeleting = false;
+    const typingSpeed = 80;
+    const deletingSpeed = 40;
+    const delayBetweenRoles = 2000;
+    const typingTextEl = document.getElementById('typing-text');
+
+    function runTypingLoop() {
+      const currentRole = roles[roleIdx];
+      
+      if (!isDeleting) {
+        typingTextEl.textContent = currentRole.substring(0, charIdx + 1);
+        charIdx++;
+        
+        if (charIdx === currentRole.length) {
+          isDeleting = true;
+          setTimeout(runTypingLoop, delayBetweenRoles);
+        } else {
+          setTimeout(runTypingLoop, typingSpeed);
+        }
+      } else {
+        typingTextEl.textContent = currentRole.substring(0, charIdx - 1);
+        charIdx--;
+        
+        if (charIdx === 0) {
+          isDeleting = false;
+          roleIdx = (roleIdx + 1) % roles.length;
+          setTimeout(runTypingLoop, 500);
+        } else {
+          setTimeout(runTypingLoop, deletingSpeed);
+        }
+      }
+    }
+    runTypingLoop();
+
+    /* ----------------------------------------------------
+       SCROLL INTERSECTION OBSERVER
+       ---------------------------------------------------- */
+    const revealElements = document.querySelectorAll('.scroll-reveal, .stagger-parent');
+    
+    const revealObserver = new IntersectionObserver((entries, observer) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('revealed');
+          
+          // If it is the stats section, animate the counters
+          if (entry.target.querySelector('.stat-numberCount')) {
+            const counters = entry.target.querySelectorAll('.stat-numberCount');
+            counters.forEach(counter => {
+              const target = parseInt(counter.getAttribute('data-target'));
+              animateCounter(counter, target);
+            });
+          }
+
+          // If it contains skill bars, animate them
+          const bars = entry.target.querySelectorAll('.skill-bar-fill');
+          if (bars.length > 0) {
+            bars.forEach(bar => {
+              const targetWidth = bar.getAttribute('data-width');
+              bar.style.width = targetWidth;
+            });
+          }
+          
+          observer.unobserve(entry.target);
+        }
+      });
+    }, {
+      threshold: 0.15
+    });
+
+    revealElements.forEach(el => revealObserver.observe(el));
+
+    // Stats counter helper
+    function animateCounter(el, target) {
+      let count = 0;
+      const speed = 100; // lower is slower
+      const increment = Math.max(1, Math.floor(target / 10));
+      
+      const timer = setInterval(() => {
+        count += increment;
+        if (count >= target) {
+          el.textContent = target;
+          clearInterval(timer);
+        } else {
+          el.textContent = count;
+        }
+      }, 50);
+    }
+
+    // Dynamic Navigation Highlighting
+    const sections = document.querySelectorAll('section');
+    const navItems = document.querySelectorAll('.nav-link-item');
+
+    window.addEventListener('scroll', () => {
+      let current = '';
+      sections.forEach(section => {
+        const sectionTop = section.offsetTop;
+        const sectionHeight = section.clientHeight;
+        if (pageYOffset >= (sectionTop - 120)) {
+          current = section.getAttribute('id');
+        }
+      });
+
+      navItems.forEach(item => {
+        item.classList.remove('active');
+        if (item.getAttribute('href').slice(1) === current) {
+          item.classList.add('active');
+        }
+      });
+    });
+
+    // Mobile Navbar Menu Toggle
+    const menuToggleBtn = document.getElementById('menu-toggle-btn');
+    const navLinksMenu = document.getElementById('nav-links-menu');
+    
+    menuToggleBtn.addEventListener('click', () => {
+      navLinksMenu.classList.toggle('mobile-open');
+      const icon = menuToggleBtn.querySelector('i');
+      if (navLinksMenu.classList.contains('mobile-open')) {
+        icon.classList.remove('fa-bars');
+        icon.classList.add('fa-xmark');
+      } else {
+        icon.classList.remove('fa-xmark');
+        icon.classList.add('fa-bars');
+      }
+    });
+
+    // Close menu when clicking link
+    document.querySelectorAll('.nav-link-item').forEach(item => {
+      item.addEventListener('click', () => {
+        navLinksMenu.classList.remove('mobile-open');
+        const icon = menuToggleBtn.querySelector('i');
+        icon.classList.remove('fa-xmark');
+        icon.classList.add('fa-bars');
+      });
+    });
+
+    /* ----------------------------------------------------
+       INTERACTIVE 3D CSS CUBE STACK CONTROLS
+       ---------------------------------------------------- */
+    const cube = document.getElementById('interactive-cube');
+    const faces = document.querySelectorAll('.cube-face');
+    const skillBlocks = document.querySelectorAll('.skill-category-block');
+
+    const rotations = {
+      mech: { x: -20, y: 30 },
+      prog: { x: -20, y: 210 },
+      iot: { x: -20, y: 120 },
+      tools: { x: -20, y: -60 }
+    };
+
+    faces.forEach(face => {
+      face.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const cat = face.getAttribute('data-category');
+        if (rotations[cat]) {
+          cube.style.transform = `rotateX(${rotations[cat].x}deg) rotateY(${rotations[cat].y}deg)`;
+          
+          // Switch details tab
+          skillBlocks.forEach(block => block.classList.remove('active'));
+          const targetBlock = document.getElementById(`skills-${cat}`);
+          if (targetBlock) {
+            targetBlock.classList.add('active');
+            
+            // Animate progress fills immediately if not loaded yet
+            const targetBars = targetBlock.querySelectorAll('.skill-bar-fill');
+            targetBars.forEach(bar => {
+              bar.style.width = bar.getAttribute('data-width');
+            });
+          }
+        }
+      });
+    });
+
+    // Auto rotate cube gently
+    let angleY = 30;
+    let autoRotateTimer = setInterval(() => {
+      angleY += 0.2;
+      cube.style.transform = `rotateX(-20deg) rotateY(${angleY}deg)`;
+    }, 40);
+
+    // Stop auto rotation on hover or click
+    const stopRotation = () => {
+      if (autoRotateTimer) {
+        clearInterval(autoRotateTimer);
+        autoRotateTimer = null;
+      }
+    };
+
+    cube.addEventListener('mouseenter', stopRotation);
+    cube.addEventListener('click', stopRotation);
+
+    /* ----------------------------------------------------
+       CONTACT FORM SUBMIT (TRANSMISSION DISPATCH)
+       ---------------------------------------------------- */
+    const contactForm = document.getElementById('portfolio-contact-form');
+    const feedbackMsg = document.getElementById('form-success-msg');
+
+    contactForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      
+      // Simulate transmitting state
+      const btn = contactForm.querySelector('button[type="submit"]');
+      const originalText = btn.innerHTML;
+      btn.disabled = true;
+      btn.innerHTML = `<span>Transmitting...</span> <i class="fa-solid fa-spinner fa-spin"></i>`;
+      
+      setTimeout(() => {
+        // Success feedback
+        btn.innerHTML = `<span>Sent</span> <i class="fa-solid fa-check"></i>`;
+        feedbackMsg.classList.add('success');
+        contactForm.reset();
+        
+        setTimeout(() => {
+          btn.disabled = false;
+          btn.innerHTML = originalText;
+          feedbackMsg.classList.remove('success');
+        }, 5000);
+      }, 1500);
+    });
+
+    // Footer Realtime UTC Clock
+    function updateClock() {
+      const now = new Date();
+      const year = now.getUTCFullYear();
+      const month = String(now.getUTCMonth() + 1).padStart(2, '0');
+      const day = String(now.getUTCDate()).padStart(2, '0');
+      const hours = String(now.getUTCHours()).padStart(2, '0');
+      const minutes = String(now.getUTCMinutes()).padStart(2, '0');
+      const seconds = String(now.getUTCSeconds()).padStart(2, '0');
+      document.getElementById('utc-clock').textContent = `${year}-${month}-${day} ${hours}:${minutes}:${seconds} UTC`;
+    }
+    setInterval(updateClock, 1000);
+    updateClock();
+
+    /* ----------------------------------------------------
+       BACKGROUND CAD MECHANICAL COMPONENTS ANIMATION
+       ---------------------------------------------------- */
+    const components = [
+      {
+        id: 'cad-gear',
+        angle: 0,
+        speedMultiplier: 1,
+        update: function(t, isHovered) {
+          const targetMult = isHovered ? 6 : 1;
+          this.speedMultiplier += (targetMult - this.speedMultiplier) * 0.1;
+          this.angle += 0.005 * this.speedMultiplier;
+          
+          const svg = this.el.querySelector('svg');
+          if (svg) svg.style.transform = `rotate(${this.angle * 180 / Math.PI}deg)`;
+        }
+      },
+      {
+        id: 'cad-bolt',
+        angle: 0.5,
+        update: function(t, isHovered) {
+          this.angle += isHovered ? 0.005 : 0.0005;
+          const svg = this.el.querySelector('svg');
+          if (svg) svg.style.transform = `rotate(${this.angle * 180 / Math.PI}deg)`;
+        }
+      },
+      {
+        id: 'cad-piston',
+        theta: 0.6,
+        update: function(t, isHovered) {
+          const speed = isHovered ? 0.08 : 0.02;
+          this.theta += speed;
+          
+          const r = 18;
+          const L = 50;
+          const cx = 50 + r * Math.sin(this.theta);
+          const cy = 85 + r * Math.cos(this.theta);
+          
+          const y_offset = r * Math.cos(this.theta) + Math.sqrt(L*L - (r*r*Math.sin(this.theta)*Math.sin(this.theta)));
+          const py = 85 - y_offset;
+          
+          const crown = this.el.querySelector('#piston-crown');
+          if (crown) {
+            crown.setAttribute('transform', `translate(0, ${py - 35})`);
+          }
+          
+          const conrod = this.el.querySelector('#piston-conrod line');
+          const conrodEnd = this.el.querySelector('#piston-conrod circle');
+          if (conrod) {
+            conrod.setAttribute('x1', '50');
+            conrod.setAttribute('y1', `${py}`);
+            conrod.setAttribute('x2', `${cx}`);
+            conrod.setAttribute('y2', `${cy}`);
+          }
+          if (conrodEnd) {
+            conrodEnd.setAttribute('cx', `${cx}`);
+            conrodEnd.setAttribute('cy', `${cy}`);
+          }
+          
+          const crankArm = this.el.querySelector('#piston-crank-arm');
+          if (crankArm) {
+            crankArm.setAttribute('x1', '50');
+            crankArm.setAttribute('y1', '85');
+            crankArm.setAttribute('x2', `${cx}`);
+            crankArm.setAttribute('y2', `${cy}`);
+          }
+        }
+      },
+      {
+        id: 'cad-shaft',
+        angle: 0,
+        update: function(t, isHovered) {
+          const speed = isHovered ? 0.015 : 0.002;
+          this.angle += speed;
+          const svg = this.el.querySelector('svg');
+          if (svg) svg.style.transform = `rotate(${this.angle * 180 / Math.PI}deg)`;
+        }
+      },
+      {
+        id: 'cad-turbine',
+        angle: 0,
+        time: 0,
+        update: function(t, isHovered) {
+          this.time += isHovered ? 0.08 : 0.02;
+          this.angle = Math.sin(this.time) * 0.2;
+          const svg = this.el.querySelector('svg');
+          if (svg) svg.style.transform = `rotate(${this.angle * 180 / Math.PI}deg)`;
+        }
+      }
+    ];
+
+    // Initialize elements, event listeners, and set initial static blueprint positions
+    components.forEach(comp => {
+      comp.el = document.getElementById(comp.id);
+      comp.isHovered = false;
+      if (comp.el) {
+        comp.el.addEventListener('mouseenter', () => { comp.isHovered = true; });
+        comp.el.addEventListener('mouseleave', () => { comp.isHovered = false; });
+        // Position elements once on load
+        comp.update(0, false);
+      }
+    });
+
+    // Run animations
+    function animateBackgroundComponents() {
+      components.forEach(comp => {
+        if (comp.el) {
+          comp.update(Date.now(), comp.isHovered);
+        }
+      });
+      requestAnimationFrame(animateBackgroundComponents);
+    }
+
+    /* ----------------------------------------------------
+       PROJECT GALLERY & LIGHTBOX EVENT LISTENERS
+       ---------------------------------------------------- */
+    const tabBtns = document.querySelectorAll('.gallery-tab-btn');
+    const grids = document.querySelectorAll('.gallery-grid');
+    
+    tabBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        tabBtns.forEach(b => b.classList.remove('active'));
+        grids.forEach(g => g.classList.remove('active'));
+        
+        btn.classList.add('active');
+        const proj = btn.getAttribute('data-project');
+        const targetGrid = document.getElementById(`gallery-${proj}`);
+        if (targetGrid) {
+          targetGrid.classList.add('active');
+        }
+      });
+    });
+
+    const lightbox = document.getElementById('gallery-lightbox');
+    const lightboxImg = document.getElementById('lightbox-img');
+    const lightboxCap = document.getElementById('lightbox-caption');
+    const closeBtn = document.getElementById('lightbox-close-btn');
+
+    document.querySelectorAll('.gallery-item').forEach(item => {
+      item.addEventListener('click', () => {
+        if (!lightbox) return;
+        const src = item.getAttribute('data-src');
+        const caption = item.getAttribute('data-caption');
+        
+        lightboxImg.src = src;
+        lightboxCap.textContent = caption;
+        lightbox.style.display = 'block';
+        isHoveringInteractive = false;
+      });
+    });
+
+    if (closeBtn && lightbox) {
+      closeBtn.addEventListener('click', () => {
+        lightbox.style.display = 'none';
+      });
+      lightbox.addEventListener('click', (e) => {
+        if (e.target === lightbox) {
+          lightbox.style.display = 'none';
+        }
+      });
+    }
+
+
+
+    /* ----------------------------------------------------
+       THREE.JS: HERO 3D COG/GEAR GRAPHICS
+       ---------------------------------------------------- */
+    let container = document.getElementById('threejs-hero-container');
+    let scene, camera, renderer;
+    let gearSystemGroup = new THREE.Group();
+    let mouseX = 0, mouseY = 0;
+    
+    // Parallax mouse movements
+    window.addEventListener('mousemove', (e) => {
+      mouseX = (e.clientX / window.innerWidth) * 2 - 1;
+      mouseY = -(e.clientY / window.innerHeight) * 2 + 1;
+    });
+
+    function initThreeJS() {
+      scene = new THREE.Scene();
+      
+      camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 100);
+      camera.position.z = 10;
+
+      renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+      renderer.setSize(container.clientWidth, container.clientHeight);
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      container.appendChild(renderer.domElement);
+
+      const ambientLight = new THREE.AmbientLight(0xffffff, 0.3);
+      scene.add(ambientLight);
+
+      const dirLight1 = new THREE.DirectionalLight(0x00d4ff, 0.8);
+      dirLight1.position.set(5, 5, 5);
+      scene.add(dirLight1);
+
+      const dirLight2 = new THREE.DirectionalLight(0xf5a623, 0.4);
+      dirLight2.position.set(-5, -5, 5);
+      scene.add(dirLight2);
+
+      // Specular PointLight to give metal gears sharp reflections
+      const specLight = new THREE.PointLight(0xffffff, 1.8, 30);
+      specLight.position.set(0, 0, 6);
+      scene.add(specLight);
+
+      function createThreeGear(radius, toothCount, thickness, colorHex) {
+        const group = new THREE.Group();
+        
+        // Metallic specular standard material
+        const solidMat = new THREE.MeshStandardMaterial({ 
+          color: colorHex, 
+          metalness: 0.9, 
+          roughness: 0.15,
+          flatShading: true
+        });
+        
+        const wireframeMat = new THREE.MeshBasicMaterial({ 
+          color: colorHex, 
+          wireframe: true, 
+          transparent: true, 
+          opacity: 0.25 
+        });
+
+        const hubGeom = new THREE.CylinderGeometry(radius * 0.22, radius * 0.22, thickness * 1.1, 16);
+        const hubSolid = new THREE.Mesh(hubGeom, solidMat);
+        const hubWire = new THREE.Mesh(hubGeom, wireframeMat);
+        group.add(hubSolid, hubWire);
+
+        const rimGeom = new THREE.CylinderGeometry(radius * 0.8, radius * 0.8, thickness, 32, 1, false);
+        const rimSolid = new THREE.Mesh(rimGeom, solidMat);
+        const rimWire = new THREE.Mesh(rimGeom, wireframeMat);
+        group.add(rimSolid, rimWire);
+
+        const spokeCount = 6;
+        for (let i = 0; i < spokeCount; i++) {
+          const angle = (i / spokeCount) * Math.PI * 2;
+          const spokeGeom = new THREE.BoxGeometry(radius * 0.7, thickness * 0.8, radius * 0.08);
+          const spokeMeshS = new THREE.Mesh(spokeGeom, solidMat);
+          const spokeMeshW = new THREE.Mesh(spokeGeom, wireframeMat);
+          
+          spokeMeshS.position.set(Math.cos(angle) * radius * 0.35, 0, Math.sin(angle) * radius * 0.35);
+          spokeMeshS.rotation.y = -angle;
+          
+          spokeMeshW.position.copy(spokeMeshS.position);
+          spokeMeshW.rotation.y = spokeMeshS.rotation.y;
+          
+          group.add(spokeMeshS, spokeMeshW);
+        }
+
+        for (let i = 0; i < toothCount; i++) {
+          const angle = (i / toothCount) * Math.PI * 2;
+          const toothGeom = new THREE.BoxGeometry(radius * 0.22, thickness, radius * 0.12);
+          const toothMeshS = new THREE.Mesh(toothGeom, solidMat);
+          const toothMeshW = new THREE.Mesh(toothGeom, wireframeMat);
+          
+          const toothDist = radius * 0.85;
+          toothMeshS.position.set(Math.cos(angle) * toothDist, 0, Math.sin(angle) * toothDist);
+          toothMeshS.rotation.y = -angle;
+          
+          toothMeshW.position.copy(toothMeshS.position);
+          toothMeshW.rotation.y = toothMeshS.rotation.y;
+          
+          group.add(toothMeshS, toothMeshW);
+        }
+
+        return group;
+      }
+
+      // Metallic material silver steel / brass gold / cyan aluminum colors
+      const mainGear = createThreeGear(2.0, 16, 0.4, 0xb0c4de); // steel silver
+      mainGear.rotation.x = Math.PI / 2;
+      gearSystemGroup.add(mainGear);
+
+      const subGear1 = createThreeGear(1.0, 8, 0.3, 0xd4af37); // brass gold
+      subGear1.rotation.x = Math.PI / 2;
+      subGear1.position.set(2.45, 0, 1.3);
+      gearSystemGroup.add(subGear1);
+
+      const subGear2 = createThreeGear(0.7, 6, 0.25, 0x00d4ff); // cyan anodized
+      subGear2.rotation.x = Math.PI / 2;
+      subGear2.position.set(-2.0, 0, -1.8);
+      gearSystemGroup.add(subGear2);
+
+      gearSystemGroup.rotation.x = Math.PI / 3;
+      gearSystemGroup.rotation.y = -Math.PI / 6;
+
+      scene.add(gearSystemGroup);
+
+      function animate() {
+        requestAnimationFrame(animate);
+
+        mainGear.rotation.y += 0.005;
+        subGear1.rotation.y -= 0.01;
+        subGear2.rotation.y -= 0.0143;
+
+        gearSystemGroup.rotation.z += 0.001;
+
+        const targetRotX = (Math.PI / 3) + (mouseY * 0.15);
+        const targetRotY = (-Math.PI / 6) + (mouseX * 0.15);
+        
+        gearSystemGroup.rotation.x += (targetRotX - gearSystemGroup.rotation.x) * 0.05;
+        gearSystemGroup.rotation.y += (targetRotY - gearSystemGroup.rotation.y) * 0.05;
+
+        renderer.render(scene, camera);
+      }
+
+      animate();
+    }
+
+    // Handle resizing ThreeJS canvas
+    window.addEventListener('resize', () => {
+      if (camera && renderer && container) {
+        camera.aspect = container.clientWidth / container.clientHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(container.clientWidth, container.clientHeight);
+      }
+    });
+
+    window.addEventListener('load', () => {
+      initThreeJS();
+      // Background components are static blueprint layers (no positional animation run loop)
+      updateInteractiveListeners();
+    });
+
+  </script>
+</body>
+</html>
